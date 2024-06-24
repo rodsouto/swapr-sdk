@@ -1,6 +1,7 @@
 import type { BaseProvider } from '@ethersproject/providers'
 import { UnsignedTransaction } from '@ethersproject/transactions'
 import { parseUnits } from '@ethersproject/units'
+import { pack } from '@ethersproject/solidity'
 import { validateAndParseAddress } from '@uniswap/sdk-core'
 import dayjs from 'dayjs'
 import JSBI from 'jsbi'
@@ -157,6 +158,101 @@ export class SwaprV3Trade extends TradeWithSwapTransaction {
     return null
   }
 
+  static async getQuoteWithPath(
+    { amount, path, tradeType, maximumSlippage }: Omit<SwaprV3GetQuoteParams, 'quoteCurrency'> & {path: Currency[]},
+    provider?: BaseProvider,
+  ): Promise<SwaprV3Trade | null> {
+    const chainId = tryGetChainId(amount, path[0])
+    invariant(chainId, 'SwaprV3Trade.getQuote: chainId is required')
+
+    maximumSlippage = maximumSlippage ?? defaultMaximumSlippage
+    provider = provider ?? getProvider(chainId)
+
+    invariant(
+      (await provider.getNetwork()).chainId == chainId,
+      `SwaprV3Trade.getQuote: currencies chainId does not match provider's chainId`,
+    )
+
+    invariant(path.length > 1, `SwaprV3Trade.getQuote: invalid path`)
+
+    invariant(amount.currency.address, `SwaprV3Trade.getQuote: amount.currency.address is required`)
+    const setToken = Currency.isNative(amount.currency)
+      ? WXDAI[ChainId.GNOSIS]
+      : new Token(
+          ChainId.GNOSIS,
+          amount.currency.address,
+          amount.currency.decimals,
+          amount.currency.symbol,
+          amount.currency.name,
+        )
+
+    const quoteCurrency = path[path.length - 1];
+
+    invariant(quoteCurrency.address, `SwaprV3Trade.getQuote: quoteCurrency.address is required`)
+    const quoteToken = Currency.isNative(quoteCurrency)
+      ? WXDAI[ChainId.GNOSIS]
+      : new Token(
+          ChainId.GNOSIS,
+          quoteCurrency.address,
+          quoteCurrency.decimals,
+          quoteCurrency.symbol,
+          quoteCurrency.name,
+        )
+
+    const routes = await getRoutes(setToken, quoteToken, chainId)
+
+    const fee =
+      routes?.length > 0 && routes[0].pools.length > 0
+        ? new Percent(routes[0].pools[0].fee.toString(), ALGEBRA_FEE_PARTS_PER_MILLION)
+        : new Percent('0', '1')
+
+    const parsedAmount = parseUnits(amount.toSignificant(), amount.currency.decimals)
+
+    const parsedPath = pack(path.map(_ => 'address'), path.map(token => token.address));
+
+    if (tradeType === TradeType.EXACT_INPUT) {
+      const quotedAmountOut = await getQuoterContract()
+        .callStatic.quoteExactInput(parsedPath, parsedAmount)
+        .catch((error) => {
+          console.error(`Error sending quoteExactInputSingle transaction: ${error}`)
+          return null
+        })
+
+      if (quotedAmountOut) {
+        return new SwaprV3Trade({
+          maximumSlippage,
+          inputAmount: amount,
+          outputAmount: new TokenAmount(quoteToken, quotedAmountOut),
+          tradeType,
+          chainId,
+          priceImpact: new Percent('0', '100'),
+          fee,
+        })
+      }
+    } else {
+      const quotedAmountIn = await getQuoterContract()
+        .callStatic.quoteExactOutput(parsedPath, parsedAmount)
+        .catch((error) => {
+          console.error(`Error sending quoteExactOutputSingle transaction: ${error}`)
+          return null
+        })
+
+      if (quotedAmountIn) {
+        return new SwaprV3Trade({
+          maximumSlippage,
+          inputAmount: new TokenAmount(quoteToken, quotedAmountIn),
+          outputAmount: amount,
+          tradeType,
+          chainId,
+          priceImpact: new Percent('0', '100'),
+          fee,
+        })
+      }
+    }
+
+    return null
+  }
+
   public minimumAmountOut(): CurrencyAmount {
     if (this.tradeType === TradeType.EXACT_OUTPUT) {
       return this.outputAmount
@@ -225,6 +321,50 @@ export class SwaprV3Trade extends TradeWithSwapTransaction {
 
     const methodName = isTradeExactInput ? 'exactInputSingle' : 'exactOutputSingle'
     const params = isTradeExactInput ? exactInputSingleParams : exactOutputSingleParams
+    const populatedTransaction = await getRouterContract().populateTransaction[methodName](params, { value })
+
+    return populatedTransaction
+  }
+
+  public async multiSwapTransaction(options: TradeOptions & {path: Currency[]}): Promise<UnsignedTransaction> {
+    const isNativeIn = Currency.isNative(this.inputAmount.currency)
+    const isNativeOut = Currency.isNative(this.outputAmount.currency)
+    invariant(
+      !(isNativeIn && isNativeOut),
+      'SwaprV3Trade.swapTransaction: the router does not support both native in and out',
+    )
+
+    const recipient = validateAndParseAddress(options.recipient)
+    const amountIn = `0x${this.maximumAmountIn().raw.toString(16)}`
+    const amountOut = `0x${this.minimumAmountOut().raw.toString(16)}`
+
+    const isTradeExactInput = this.tradeType === TradeType.EXACT_INPUT
+
+    // Swapr Algebra Contract fee param is uint24 type
+    const algebraFee = this.fee.multiply(ALGEBRA_FEE_PARTS_PER_MILLION).toSignificant(1)
+    const baseParams = {
+      path: pack(options.path.map(_ => 'address'), options.path.map(token => token.address)),
+      recipient,
+      deadline: dayjs().add(30, 'm').unix(),
+      fee: algebraFee,
+    }
+
+    const value = isNativeIn ? amountIn : undefined
+
+    const exactInputParams = {
+      ...baseParams,
+      amountIn,
+      amountOutMinimum: amountOut,
+    }
+
+    const exactOutputParams = {
+      ...baseParams,
+      amountOut,
+      amountInMaximum: amountIn,
+    }
+
+    const methodName = isTradeExactInput ? 'exactInput' : 'exactOutput'
+    const params = isTradeExactInput ? exactInputParams : exactOutputParams
     const populatedTransaction = await getRouterContract().populateTransaction[methodName](params, { value })
 
     return populatedTransaction
