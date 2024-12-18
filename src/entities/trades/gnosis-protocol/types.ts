@@ -1,4 +1,4 @@
-import { ApiOrderStatus, SimpleGetQuoteResponse } from '@cowprotocol/cow-sdk'
+import { OrderStatus, OrderQuoteResponse, OrderBookApi } from '@cowprotocol/cow-sdk'
 
 import type { ChainId, TradeType } from '../../../constants'
 import type { Currency } from '../../currency'
@@ -13,7 +13,8 @@ export interface CoWTradeParams {
   chainId: ChainId
   fee?: Percent
   feeAmount: CurrencyAmount
-  quote: SimpleGetQuoteResponse
+  quote: OrderQuoteResponse
+  orderBookApi: OrderBookApi
 }
 
 export interface CoWTradeGetBestTradeExactInParams {
@@ -32,4 +33,4 @@ export interface CoWTradeGetBestTradeExactOutParams {
   user: string
 }
 
-export type CoWTradeApiOrderStatus = ApiOrderStatus
+export type CoWTradeApiOrderStatus = OrderStatus

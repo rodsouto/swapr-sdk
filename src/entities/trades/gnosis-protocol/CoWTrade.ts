@@ -1,9 +1,5 @@
 import contractNetworks from '@cowprotocol/contracts/networks.json'
-import { CowSdk, OrderKind, SimpleGetQuoteResponse } from '@cowprotocol/cow-sdk'
-// eslint-disable-next-line no-restricted-imports
-import { CowContext } from '@cowprotocol/cow-sdk/dist/utils/context'
-// eslint-disable-next-line no-restricted-imports
-import { SigningResult, UnsignedOrder } from '@cowprotocol/cow-sdk/dist/utils/sign'
+import { EnrichedOrder, OrderBookApi, OrderQuoteResponse, OrderQuoteSideKindBuy, OrderQuoteSideKindSell, OrderSigningUtils, SigningResult, SupportedChainId, UnsignedOrder } from '@cowprotocol/cow-sdk'
 import { Signer } from '@ethersproject/abstract-signer'
 import { parseUnits } from '@ethersproject/units'
 import dayjs from 'dayjs'
@@ -41,7 +37,7 @@ export class CoWTrade extends Trade {
   /**
    * The original quote from CoW
    */
-  public readonly quote: SimpleGetQuoteResponse
+  public readonly quote: OrderQuoteResponse
 
   /**
    * Order signature
@@ -49,9 +45,14 @@ export class CoWTrade extends Trade {
   private orderSignatureInfo?: SigningResult
 
   /**
+   * The order book api
+   */
+  public readonly orderBookApi: OrderBookApi;
+
+  /**
    * The order
    */
-  public readonly order: Omit<UnsignedOrder, 'appData'>
+  public order?: EnrichedOrder
 
   /**
    * The execution price of the trade without CoW fee
@@ -69,7 +70,7 @@ export class CoWTrade extends Trade {
   public readonly feeAmount: CurrencyAmount
 
   constructor(params: CoWTradeParams) {
-    const { chainId, feeAmount, inputAmount, maximumSlippage, outputAmount, quote, tradeType, fee } = params
+    const { chainId, feeAmount, inputAmount, maximumSlippage, outputAmount, quote, tradeType, fee, orderBookApi } = params
 
     invariant(!currencyEquals(inputAmount.currency, outputAmount.currency), 'SAME_TOKEN')
 
@@ -95,13 +96,8 @@ export class CoWTrade extends Trade {
       fee,
       approveAddress,
     })
+    this.orderBookApi = orderBookApi
     this.quote = quote
-    // construct the order
-    this.order = {
-      ...quote.quote,
-      validTo: parseInt(quote.quote.validTo),
-      receiver: quote.quote.receiver ?? quote.from,
-    }
 
     this.executionPriceWithoutFee = new Price({
       baseCurrency: inputAmount.currency,
@@ -121,35 +117,6 @@ export class CoWTrade extends Trade {
 
   public maximumAmountIn(): CurrencyAmount {
     return this.inputAmount
-  }
-
-  /**
-   * Returns the Gnosis Protocol API, with access to low level methods.
-   * @param quote Quote query params
-   * @param chainId The chainId, defaults to Mainnet (1)
-   * @returns
-   */
-  public static getCowSdk(chainId = ChainId.MAINNET, cowContext?: CowContext) {
-    return new CowSdk(
-      chainId as number,
-      {
-        ...cowContext,
-        // Always append correct app data
-        appDataHash: CoWTrade.getAppData(chainId).ipfsHashInfo.appDataHash,
-      },
-      {
-        loglevel: 'debug',
-      },
-    )
-  }
-
-  /**
-   * Fetches the order metadata from the API
-   * @param orderId The order ID
-   * @param chainId The chainId, defaults to Mainnet (1)
-   */
-  public static async getOrderMetadata(orderId: string, chainId: ChainId = ChainId.MAINNET) {
-    return CoWTrade.getCowSdk(chainId).cowApi.getOrder(orderId)
   }
 
   /**
@@ -181,10 +148,14 @@ export class CoWTrade extends Trade {
     // the router does not support both ether in and out
     // invariant(!(etherIn && etherOut), 'ETHER_IN_OUT')
     try {
-      const quoteResponse = await CoWTrade.getCowSdk(chainId).cowApi.getQuote({
+      const orderBookApi = new OrderBookApi({
+        chainId: chainId as unknown as SupportedChainId,
+        env: 'prod',
+      })
+      const quoteResponse = await orderBookApi.getQuote({
         appData: CoWTrade.getAppData(chainId).ipfsHashInfo.appDataHash, // App data hash,
         buyToken: tokenOut.address,
-        kind: OrderKind.SELL,
+        kind: OrderQuoteSideKindSell.SELL,
         from: user,
         receiver,
         validTo: dayjs().add(1, 'h').unix(), // Order expires in 1 hour
@@ -216,6 +187,7 @@ export class CoWTrade extends Trade {
         fee,
         feeAmount,
         quote: { ...quoteResponse, quote: { ...quoteResponse.quote, sellAmount, feeAmount: '0' } },
+        orderBookApi
       })
     } catch (error) {
       console.error('could not fetch Cow trade', error)
@@ -248,14 +220,16 @@ export class CoWTrade extends Trade {
     invariant(!tokenIn.equals(tokenOut), 'CURRENCY')
 
     try {
-      const cowSdk = CoWTrade.getCowSdk(chainId)
-
-      const quoteResponse = await cowSdk.cowApi.getQuote({
+      const orderBookApi = new OrderBookApi({
+        chainId: chainId as unknown as SupportedChainId,
+        env: 'prod',
+      })
+      const quoteResponse = await orderBookApi.getQuote({
         appData: CoWTrade.getAppData(chainId).ipfsHashInfo.appDataHash, // App data hash,
         buyAmountAfterFee: amountOutBN.toString(),
         buyToken: tokenOut.address,
         from: user,
-        kind: OrderKind.BUY,
+        kind: OrderQuoteSideKindBuy.BUY,
         sellToken: tokenIn.address,
         partiallyFillable: false,
         receiver,
@@ -291,6 +265,7 @@ export class CoWTrade extends Trade {
         fee,
         feeAmount,
         quote: { ...quoteResponse, quote: { ...quoteResponse.quote, sellAmount, feeAmount: '0' } },
+        orderBookApi
       })
     } catch (error) {
       console.error('could not fetch COW trade', error)
@@ -304,15 +279,8 @@ export class CoWTrade extends Trade {
    * @returns The current instance
    * @throws {CoWTradeError} If the order is missing a receiver
    */
-  public async signOrder(signer: Signer, recipient: string) {
-    if (!recipient && !this.order.receiver) {
-      throw new CoWTradeError('Missing order receiver')
-    }
-    if (recipient) this.order.receiver = recipient
-
-    const signOrderResults = await CoWTrade.getCowSdk(this.chainId, {
-      signer,
-    }).signOrder(this.order)
+  public async signOrder(signer: Signer) {
+    const signOrderResults = await OrderSigningUtils.signOrder(this.quote.quote as UnsignedOrder, this.chainId as unknown as SupportedChainId, signer);
 
     if (!signOrderResults.signature) {
       throw new CoWTradeError('Order was not signed')
@@ -345,24 +313,24 @@ export class CoWTrade extends Trade {
    * @returns the signing results
    */
   public static async cancelOrder(orderId: string, chainId: ChainId, signer: Signer) {
-    const cowSdk = CoWTrade.getCowSdk(chainId, {
-      signer,
-    })
 
-    const orderCancellationSignature = await cowSdk.signOrderCancellation(orderId)
+    const orderCancellationSignature = await OrderSigningUtils.signOrderCancellations(
+      [orderId],
+      chainId as unknown as SupportedChainId,
+      signer
+    );
 
     if (!orderCancellationSignature.signature) {
       throw new CoWTradeError('Order cancellation was not signed')
     }
 
-    return cowSdk.cowApi.sendSignedOrderCancellation({
-      cancellation: {
-        signature: orderCancellationSignature.signature,
-        signingScheme: orderCancellationSignature.signingScheme,
-      },
-      chainId: chainId as any,
-      owner: await signer.getAddress(),
-    })
+    return await new OrderBookApi({
+      chainId: chainId as unknown as SupportedChainId,
+      env: 'prod',
+    }).sendSignedOrderCancellations({
+      ...orderCancellationSignature,
+      orderUids: [orderId],
+		})
   }
 
   /**
@@ -378,30 +346,18 @@ export class CoWTrade extends Trade {
     const { from, id: quoteId } = this.quote
 
     const sendOrderParams = {
-      order: {
-        ...this.order,
-        quoteId,
-        signature: this.orderSignatureInfo.signature as any,
-        signingScheme: this.orderSignatureInfo.signingScheme as any,
-      },
+      ...this.quote.quote,
+      quoteId,
+      signature: this.orderSignatureInfo.signature as any,
+      signingScheme: this.orderSignatureInfo.signingScheme as any,
       owner: from,
     }
 
-    this.orderId = await CoWTrade.getCowSdk(this.chainId).cowApi.sendOrder(sendOrderParams)
+    this.orderId = await this.orderBookApi.sendOrder(sendOrderParams);
+
+    this.order = await this.orderBookApi.getOrder(this.orderId);
 
     return this.orderId
-  }
-
-  /**
-   * Fetches the order status from the API
-   * @throws {CoWTradeError} if the order ID is missing
-   */
-  public getOrderMetadata() {
-    if (!this.orderId) {
-      throw new CoWTradeError('CoWTrade: Missing order ID')
-    }
-
-    return CoWTrade.getOrderMetadata(this.orderId, this.chainId)
   }
 
   /**
@@ -419,12 +375,8 @@ export class CoWTrade extends Trade {
    * @returns The vault relayer address or undefined
    */
   public static getVaultRelayerAddress(chainId: GPv2SupportedChainId) {
-    const GPv2VaultRelayer = contractNetworks.GPv2VaultRelayer as Record<
-      GPv2SupportedChainId,
-      Record<'transactionHash' | 'address', string>
-    >
-
-    return GPv2VaultRelayer[chainId]?.address
+    // @ts-ignore
+    return contractNetworks.GPv2VaultRelayer[chainId]?.address
   }
 
   /**
@@ -433,12 +385,8 @@ export class CoWTrade extends Trade {
    * @returns The settlement address or undefined
    */
   public static getSettlementAddress(chainId: GPv2SupportedChainId) {
-    const GPv2Settlement = contractNetworks.GPv2Settlement as Record<
-      GPv2SupportedChainId,
-      Record<'transactionHash' | 'address', string>
-    >
-
-    return GPv2Settlement[chainId]?.address
+    // @ts-ignore
+    return contractNetworks.GPv2Settlement[chainId]?.address
   }
 }
 
