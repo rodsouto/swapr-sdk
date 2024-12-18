@@ -1,4 +1,4 @@
-import { OrderStatus, OrderQuoteResponse, OrderBookApi } from '@cowprotocol/cow-sdk'
+import { OrderStatus, OrderQuoteResponse, OrderBookApi, PriceQuality } from '@cowprotocol/cow-sdk'
 
 import type { ChainId, TradeType } from '../../../constants'
 import type { Currency } from '../../currency'
@@ -23,6 +23,8 @@ export interface CoWTradeGetBestTradeExactInParams {
   maximumSlippage: Percent
   receiver: string
   user: string
+  priceQuality?: PriceQuality
+  validTo?: number
 }
 
 export interface CoWTradeGetBestTradeExactOutParams {
@@ -31,6 +33,8 @@ export interface CoWTradeGetBestTradeExactOutParams {
   maximumSlippage: Percent
   receiver: string
   user: string
+  priceQuality?: PriceQuality
+  validTo?: number
 }
 
 export type CoWTradeApiOrderStatus = OrderStatus

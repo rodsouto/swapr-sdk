@@ -134,6 +134,8 @@ export class CoWTrade extends Trade {
     maximumSlippage,
     receiver,
     user,
+    priceQuality,
+    validTo
   }: CoWTradeGetBestTradeExactInParams): Promise<CoWTrade | undefined> {
     // Try to extract the chain ID from the tokens
     const chainId = tryGetChainId(currencyAmountIn, currencyOut)
@@ -158,10 +160,11 @@ export class CoWTrade extends Trade {
         kind: OrderQuoteSideKindSell.SELL,
         from: user,
         receiver,
-        validTo: dayjs().add(1, 'h').unix(), // Order expires in 1 hour
+        validTo: validTo || dayjs().add(1, 'h').unix(), // Order expires in 1 hour
         partiallyFillable: false,
         sellAmountBeforeFee: amountInBN.toString(),
         sellToken: tokenIn.address,
+        priceQuality,
       })
 
       // CoW Swap doesn't charge any fee
@@ -209,6 +212,8 @@ export class CoWTrade extends Trade {
     maximumSlippage,
     receiver,
     user,
+    priceQuality,
+    validTo
   }: CoWTradeGetBestTradeExactOutParams): Promise<CoWTrade | undefined> {
     // Try to extract the chain ID from the tokens
     const chainId = tryGetChainId(currencyAmountOut, currencyIn)
@@ -233,7 +238,8 @@ export class CoWTrade extends Trade {
         sellToken: tokenIn.address,
         partiallyFillable: false,
         receiver,
-        validTo: dayjs().add(1, 'h').unix(), // Order expires in 1 hour
+        validTo: validTo || dayjs().add(1, 'h').unix(), // Order expires in 1 hour
+        priceQuality,
       })
 
       const inputAmount = Currency.isNative(tokenIn)
