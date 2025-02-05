@@ -42,7 +42,7 @@ export async function getOrderMetadata({
   pinataApiKey,
   pinataApiSecret,
 }: GetOrderMetadataParams): Promise<GnosisProtocolMetadata> {
-  const appCode = 'Swapr' // default
+  const appCode = 'Seer' // default
   const cowSdkInstance = new CowSdk(chainId, {
     ipfs: {
       pinataApiKey,
