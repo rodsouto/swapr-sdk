@@ -56,4 +56,13 @@ export const baseTokens: BaseToken[] = [
     isToken: true,
     address: '0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb',
   },
+  {
+    chainId: ChainId.GNOSIS,
+    decimals: 18,
+    symbol: 'sDAI',
+    name: 'Savings xDAI',
+    isNative: false,
+    isToken: true,
+    address: '0xaf204776c7245bf4147c2612bf6e5972ee483701',
+  },
 ]
