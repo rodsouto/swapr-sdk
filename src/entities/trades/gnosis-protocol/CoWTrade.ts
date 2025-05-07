@@ -9,6 +9,7 @@ import invariant from 'tiny-invariant'
 import { ChainId, ONE, TradeType, ZERO } from '../../../constants'
 import { Currency } from '../../currency'
 import { CurrencyAmount } from '../../fractions/currencyAmount'
+import { Fraction } from '../../fractions/fraction'
 import { Percent } from '../../fractions/percent'
 import { Price } from '../../fractions/price'
 import { TokenAmount } from '../../fractions/tokenAmount'
@@ -112,11 +113,30 @@ export class CoWTrade extends Trade {
   }
 
   public minimumAmountOut(): CurrencyAmount {
-    return this.outputAmount
+    if (this.tradeType === TradeType.EXACT_OUTPUT) {
+      return this.outputAmount
+    } else {
+      const slippageAdjustedAmountOut = new Fraction(ONE)
+        .add(this.maximumSlippage)
+        .invert()
+        .multiply(this.outputAmount.raw).quotient
+      return this.outputAmount instanceof TokenAmount
+        ? new TokenAmount(this.outputAmount.token, slippageAdjustedAmountOut)
+        : CurrencyAmount.nativeCurrency(slippageAdjustedAmountOut, this.chainId)
+    }
   }
 
   public maximumAmountIn(): CurrencyAmount {
-    return this.inputAmount
+    if (this.tradeType === TradeType.EXACT_INPUT) {
+      return this.inputAmount
+    } else {
+      const slippageAdjustedAmountIn = new Fraction(ONE)
+        .add(this.maximumSlippage)
+        .multiply(this.inputAmount.raw).quotient
+      return this.inputAmount instanceof TokenAmount
+        ? new TokenAmount(this.inputAmount.token, slippageAdjustedAmountIn)
+        : CurrencyAmount.nativeCurrency(slippageAdjustedAmountIn, this.chainId)
+    }
   }
 
   /**
