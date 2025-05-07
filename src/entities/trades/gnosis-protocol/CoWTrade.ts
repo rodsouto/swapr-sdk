@@ -9,6 +9,7 @@ import invariant from 'tiny-invariant'
 import { ChainId, ONE, TradeType, ZERO } from '../../../constants'
 import { Currency } from '../../currency'
 import { CurrencyAmount } from '../../fractions/currencyAmount'
+import { Fraction } from '../../fractions/fraction'
 import { Percent } from '../../fractions/percent'
 import { Price } from '../../fractions/price'
 import { TokenAmount } from '../../fractions/tokenAmount'
@@ -112,11 +113,30 @@ export class CoWTrade extends Trade {
   }
 
   public minimumAmountOut(): CurrencyAmount {
-    return this.outputAmount
+    if (this.tradeType === TradeType.EXACT_OUTPUT) {
+      return this.outputAmount
+    } else {
+      const slippageAdjustedAmountOut = new Fraction(ONE)
+        .add(this.maximumSlippage)
+        .invert()
+        .multiply(this.outputAmount.raw).quotient
+      return this.outputAmount instanceof TokenAmount
+        ? new TokenAmount(this.outputAmount.token, slippageAdjustedAmountOut)
+        : CurrencyAmount.nativeCurrency(slippageAdjustedAmountOut, this.chainId)
+    }
   }
 
   public maximumAmountIn(): CurrencyAmount {
-    return this.inputAmount
+    if (this.tradeType === TradeType.EXACT_INPUT) {
+      return this.inputAmount
+    } else {
+      const slippageAdjustedAmountIn = new Fraction(ONE)
+        .add(this.maximumSlippage)
+        .multiply(this.inputAmount.raw).quotient
+      return this.inputAmount instanceof TokenAmount
+        ? new TokenAmount(this.inputAmount.token, slippageAdjustedAmountIn)
+        : CurrencyAmount.nativeCurrency(slippageAdjustedAmountIn, this.chainId)
+    }
   }
 
   /**
@@ -279,6 +299,19 @@ export class CoWTrade extends Trade {
     }
   }
 
+  public getUnsignedOrder() {
+    return {
+      ...this.quote.quote,
+      ...(this.quote.quote.kind === 'buy'
+        ? {
+            sellAmount: this.maximumAmountIn().raw.toString(),
+          }
+        : {
+            buyAmount: this.minimumAmountOut().raw.toString(),
+          }),
+    } as UnsignedOrder
+  }
+
   /**
    * Signs the order by adding signature
    * @param signer The signer
@@ -286,7 +319,7 @@ export class CoWTrade extends Trade {
    * @throws {CoWTradeError} If the order is missing a receiver
    */
   public async signOrder(signer: Signer) {
-    const signOrderResults = await OrderSigningUtils.signOrder(this.quote.quote as UnsignedOrder, this.chainId as unknown as SupportedChainId, signer);
+    const signOrderResults = await OrderSigningUtils.signOrder(this.getUnsignedOrder(), this.chainId as unknown as SupportedChainId, signer);
 
     if (!signOrderResults.signature) {
       throw new CoWTradeError('Order was not signed')
@@ -352,7 +385,7 @@ export class CoWTrade extends Trade {
     const { from, id: quoteId } = this.quote
 
     const sendOrderParams = {
-      ...this.quote.quote,
+      ...this.getUnsignedOrder(),
       quoteId,
       signature: this.orderSignatureInfo.signature as any,
       signingScheme: this.orderSignatureInfo.signingScheme as any,
