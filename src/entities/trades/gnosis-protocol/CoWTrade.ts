@@ -113,32 +113,47 @@ export class CoWTrade extends Trade {
   }
 
   public minimumAmountOut(): CurrencyAmount {
-    if (this.tradeType === TradeType.EXACT_OUTPUT) {
-      return this.outputAmount
+    return this._minimumAmountOut(this.tradeType, this.outputAmount, this.maximumSlippage, this.chainId)
+  }
+
+  public _minimumAmountOut(
+    tradeType: TradeType,
+    outputAmount: CurrencyAmount,
+    maximumSlippage: Percent,
+    chainId: ChainId,
+  ): CurrencyAmount {
+    if (tradeType === TradeType.EXACT_OUTPUT) {
+      return outputAmount
     } else {
       const slippageAdjustedAmountOut = new Fraction(ONE)
-        .add(this.maximumSlippage)
+        .add(maximumSlippage)
         .invert()
-        .multiply(this.outputAmount.raw).quotient
-      return this.outputAmount instanceof TokenAmount
-        ? new TokenAmount(this.outputAmount.token, slippageAdjustedAmountOut)
-        : CurrencyAmount.nativeCurrency(slippageAdjustedAmountOut, this.chainId)
+        .multiply(outputAmount.raw).quotient
+      return outputAmount instanceof TokenAmount
+        ? new TokenAmount(outputAmount.token, slippageAdjustedAmountOut)
+        : CurrencyAmount.nativeCurrency(slippageAdjustedAmountOut, chainId)
     }
   }
 
   public maximumAmountIn(): CurrencyAmount {
-    if (this.tradeType === TradeType.EXACT_INPUT) {
-      return this.inputAmount
-    } else {
-      const slippageAdjustedAmountIn = new Fraction(ONE)
-        .add(this.maximumSlippage)
-        .multiply(this.inputAmount.raw).quotient
-      return this.inputAmount instanceof TokenAmount
-        ? new TokenAmount(this.inputAmount.token, slippageAdjustedAmountIn)
-        : CurrencyAmount.nativeCurrency(slippageAdjustedAmountIn, this.chainId)
-    }
+    return this._maximumAmountIn(this.tradeType, this.inputAmount, this.maximumSlippage, this.chainId)
   }
 
+  public _maximumAmountIn(
+    tradeType: TradeType,
+    inputAmount: CurrencyAmount,
+    maximumSlippage: Percent,
+    chainId: ChainId,
+  ): CurrencyAmount {
+    if (tradeType === TradeType.EXACT_INPUT) {
+      return inputAmount
+    } else {
+      const slippageAdjustedAmountIn = new Fraction(ONE).add(maximumSlippage).multiply(inputAmount.raw).quotient
+      return inputAmount instanceof TokenAmount
+        ? new TokenAmount(inputAmount.token, slippageAdjustedAmountIn)
+        : CurrencyAmount.nativeCurrency(slippageAdjustedAmountIn, chainId)
+    }
+  }
   /**
    * Computes and returns the best trade from Gnosis Protocol API
    * @param {object} obj options
@@ -299,6 +314,29 @@ export class CoWTrade extends Trade {
     }
   }
 
+  public getUnsignedOrder() {
+    return {
+      ...this.quote.quote,
+      ...(this.quote.quote.kind === 'buy'
+        ? {
+            sellAmount: this._maximumAmountIn(
+              TradeType.EXACT_INPUT,
+              this.inputAmount,
+              this.maximumSlippage,
+              this.chainId,
+            ).raw.toString(),
+          }
+        : {
+            buyAmount: this._minimumAmountOut(
+              TradeType.EXACT_INPUT,
+              this.outputAmount,
+              this.maximumSlippage,
+              this.chainId,
+            ).raw.toString(),
+          }),
+    } as UnsignedOrder;
+  }
+
   /**
    * Signs the order by adding signature
    * @param signer The signer
@@ -307,7 +345,10 @@ export class CoWTrade extends Trade {
    */
   public async signOrder(signer: Signer) {
     const signOrderResults = await OrderSigningUtils.signOrder(
-      { ...this.quote.quote, appData: CoWTrade.getAppData(this.chainId).ipfsHashInfo.appDataHex } as UnsignedOrder,
+      {
+        ...this.getUnsignedOrder(),
+        appData: CoWTrade.getAppData(this.chainId).ipfsHashInfo.appDataHex,
+      },
       this.chainId as unknown as SupportedChainId,
       signer,
     )
@@ -376,7 +417,7 @@ export class CoWTrade extends Trade {
     const { from, id: quoteId } = this.quote
 
     const sendOrderParams = {
-      ...this.quote.quote,
+      ...this.getUnsignedOrder(),
       quoteId,
       signature: this.orderSignatureInfo.signature as any,
       signingScheme: this.orderSignatureInfo.signingScheme as any,
