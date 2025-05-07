@@ -1,7 +1,8 @@
-import { EnrichedOrder, OrderBookApi, OrderQuoteResponse } from '@cowprotocol/cow-sdk';
+import { EnrichedOrder, OrderBookApi, OrderQuoteResponse, UnsignedOrder } from '@cowprotocol/cow-sdk';
 import { Signer } from '@ethersproject/abstract-signer';
-import { ChainId } from '../../../constants';
+import { ChainId, TradeType } from '../../../constants';
 import { CurrencyAmount } from '../../fractions/currencyAmount';
+import { Percent } from '../../fractions/percent';
 import { Price } from '../../fractions/price';
 import { Trade } from '../interfaces/trade';
 import { CoWTradeGetBestTradeExactInParams, CoWTradeGetBestTradeExactOutParams, CoWTradeParams } from './types';
@@ -45,7 +46,9 @@ export declare class CoWTrade extends Trade {
     readonly feeAmount: CurrencyAmount;
     constructor(params: CoWTradeParams);
     minimumAmountOut(): CurrencyAmount;
+    _minimumAmountOut(tradeType: TradeType, outputAmount: CurrencyAmount, maximumSlippage: Percent, chainId: ChainId): CurrencyAmount;
     maximumAmountIn(): CurrencyAmount;
+    _maximumAmountIn(tradeType: TradeType, inputAmount: CurrencyAmount, maximumSlippage: Percent, chainId: ChainId): CurrencyAmount;
     /**
      * Computes and returns the best trade from Gnosis Protocol API
      * @param {object} obj options
@@ -65,6 +68,7 @@ export declare class CoWTrade extends Trade {
      * @returns A GPv2 trade if found, otherwise undefined
      */
     static bestTradeExactOut({ currencyAmountOut, currencyIn, maximumSlippage, receiver, user, priceQuality, validTo }: CoWTradeGetBestTradeExactOutParams): Promise<CoWTrade | undefined>;
+    getUnsignedOrder(): UnsignedOrder;
     /**
      * Signs the order by adding signature
      * @param signer The signer
@@ -99,33 +103,35 @@ export declare class CoWTrade extends Trade {
      */
     static getAppData(chainId: ChainId): {
         ipfsHashInfo: {
-            cidV0: string;
-            appDataHash: string;
+            cid: string;
+            appDataHex: string;
+            appDataContent: string;
         };
         content: {
-            version: string;
             appCode: string;
             metadata: {
-                referrer: {
-                    address: string;
-                    version: string;
+                orderClass: {
+                    orderClass: string;
                 };
             };
+            version: string;
+            environment: string;
         };
     } | {
         ipfsHashInfo: {
-            cidV0: string;
-            appDataHash: string;
+            cid: string;
+            appDataHex: string;
+            appDataContent: string;
         };
         content: {
-            version: string;
             appCode: string;
             metadata: {
-                referrer: {
-                    address: string;
-                    version: string;
+                orderClass: {
+                    orderClass: string;
                 };
             };
+            version: string;
+            environment: string;
         };
     };
     /**
