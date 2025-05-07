@@ -155,13 +155,13 @@ export class CoWTrade extends Trade {
         env: 'prod',
       })
       const quoteResponse = await orderBookApi.getQuote({
-        appData: CoWTrade.getAppData(chainId).ipfsHashInfo.appDataHash, // App data hash,
+        appData: CoWTrade.getAppData(chainId).ipfsHashInfo.appDataContent,
+        appDataHash: CoWTrade.getAppData(chainId).ipfsHashInfo.appDataHex,
         buyToken: tokenOut.address,
         kind: OrderQuoteSideKindSell.SELL,
         from: user,
         receiver,
         validTo: validTo || dayjs().add(1, 'h').unix(), // Order expires in 1 hour
-        partiallyFillable: false,
         sellAmountBeforeFee: amountInBN.toString(),
         sellToken: tokenIn.address,
         priceQuality,
@@ -230,13 +230,13 @@ export class CoWTrade extends Trade {
         env: 'prod',
       })
       const quoteResponse = await orderBookApi.getQuote({
-        appData: CoWTrade.getAppData(chainId).ipfsHashInfo.appDataHash, // App data hash,
+        appData: CoWTrade.getAppData(chainId).ipfsHashInfo.appDataContent,
+        appDataHash: CoWTrade.getAppData(chainId).ipfsHashInfo.appDataHex,
         buyAmountAfterFee: amountOutBN.toString(),
         buyToken: tokenOut.address,
         from: user,
         kind: OrderQuoteSideKindBuy.BUY,
         sellToken: tokenIn.address,
-        partiallyFillable: false,
         receiver,
         validTo: validTo || dayjs().add(1, 'h').unix(), // Order expires in 1 hour
         priceQuality,
@@ -286,7 +286,11 @@ export class CoWTrade extends Trade {
    * @throws {CoWTradeError} If the order is missing a receiver
    */
   public async signOrder(signer: Signer) {
-    const signOrderResults = await OrderSigningUtils.signOrder(this.quote.quote as UnsignedOrder, this.chainId as unknown as SupportedChainId, signer);
+    const signOrderResults = await OrderSigningUtils.signOrder(
+      { ...this.quote.quote, appData: CoWTrade.getAppData(this.chainId).ipfsHashInfo.appDataHex } as UnsignedOrder,
+      this.chainId as unknown as SupportedChainId,
+      signer,
+    )
 
     if (!signOrderResults.signature) {
       throw new CoWTradeError('Order was not signed')
@@ -357,6 +361,7 @@ export class CoWTrade extends Trade {
       signature: this.orderSignatureInfo.signature as any,
       signingScheme: this.orderSignatureInfo.signingScheme as any,
       owner: from,
+      partiallyFillable: false,
     }
 
     this.orderId = await this.orderBookApi.sendOrder(sendOrderParams);
