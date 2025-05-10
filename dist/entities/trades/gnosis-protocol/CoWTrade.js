@@ -11,6 +11,7 @@ const tiny_invariant_1 = tslib_1.__importDefault(require("tiny-invariant"));
 const constants_1 = require("../../../constants");
 const currency_1 = require("../../currency");
 const currencyAmount_1 = require("../../fractions/currencyAmount");
+const fraction_1 = require("../../fractions/fraction");
 const percent_1 = require("../../fractions/percent");
 const price_1 = require("../../fractions/price");
 const tokenAmount_1 = require("../../fractions/tokenAmount");
@@ -65,10 +66,31 @@ class CoWTrade extends trade_1.Trade {
         this.feeAmount = feeAmount;
     }
     minimumAmountOut() {
-        return this.outputAmount;
+        if (this.tradeType === constants_1.TradeType.EXACT_OUTPUT) {
+            return this.outputAmount;
+        }
+        else {
+            const slippageAdjustedAmountOut = new fraction_1.Fraction(constants_1.ONE)
+                .add(this.maximumSlippage)
+                .invert()
+                .multiply(this.outputAmount.raw).quotient;
+            return this.outputAmount instanceof tokenAmount_1.TokenAmount
+                ? new tokenAmount_1.TokenAmount(this.outputAmount.token, slippageAdjustedAmountOut)
+                : currencyAmount_1.CurrencyAmount.nativeCurrency(slippageAdjustedAmountOut, this.chainId);
+        }
     }
     maximumAmountIn() {
-        return this.inputAmount;
+        if (this.tradeType === constants_1.TradeType.EXACT_INPUT) {
+            return this.inputAmount;
+        }
+        else {
+            const slippageAdjustedAmountIn = new fraction_1.Fraction(constants_1.ONE)
+                .add(this.maximumSlippage)
+                .multiply(this.inputAmount.raw).quotient;
+            return this.inputAmount instanceof tokenAmount_1.TokenAmount
+                ? new tokenAmount_1.TokenAmount(this.inputAmount.token, slippageAdjustedAmountIn)
+                : currencyAmount_1.CurrencyAmount.nativeCurrency(slippageAdjustedAmountIn, this.chainId);
+        }
     }
     /**
      * Computes and returns the best trade from Gnosis Protocol API
@@ -98,7 +120,7 @@ class CoWTrade extends trade_1.Trade {
                     env: 'prod',
                 });
                 const quoteResponse = yield orderBookApi.getQuote({
-                    appData: CoWTrade.getAppData(chainId).ipfsHashInfo.appDataHash,
+                    appData: CoWTrade.getAppData(chainId).ipfsHashInfo.appData,
                     buyToken: tokenOut.address,
                     kind: cow_sdk_1.OrderQuoteSideKindSell.SELL,
                     from: user,
@@ -159,7 +181,7 @@ class CoWTrade extends trade_1.Trade {
                     env: 'prod',
                 });
                 const quoteResponse = yield orderBookApi.getQuote({
-                    appData: CoWTrade.getAppData(chainId).ipfsHashInfo.appDataHash,
+                    appData: CoWTrade.getAppData(chainId).ipfsHashInfo.appData,
                     buyAmountAfterFee: amountOutBN.toString(),
                     buyToken: tokenOut.address,
                     from: user,
@@ -200,6 +222,15 @@ class CoWTrade extends trade_1.Trade {
             }
         });
     }
+    getUnsignedOrder() {
+        return Object.assign(Object.assign({}, this.quote.quote), (this.quote.quote.kind === 'buy'
+            ? {
+                sellAmount: this.maximumAmountIn().raw.toString(),
+            }
+            : {
+                buyAmount: this.minimumAmountOut().raw.toString(),
+            }));
+    }
     /**
      * Signs the order by adding signature
      * @param signer The signer
@@ -208,7 +239,7 @@ class CoWTrade extends trade_1.Trade {
      */
     signOrder(signer) {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            const signOrderResults = yield cow_sdk_1.OrderSigningUtils.signOrder(this.quote.quote, this.chainId, signer);
+            const signOrderResults = yield cow_sdk_1.OrderSigningUtils.signOrder(this.getUnsignedOrder(), this.chainId, signer);
             if (!signOrderResults.signature) {
                 throw new CoWTradeError_1.CoWTradeError('Order was not signed');
             }
@@ -260,7 +291,7 @@ class CoWTrade extends trade_1.Trade {
                 throw new CoWTradeError_1.CoWTradeError('CoWTrade: Missing order signature');
             }
             const { from, id: quoteId } = this.quote;
-            const sendOrderParams = Object.assign(Object.assign({}, this.quote.quote), { quoteId, signature: this.orderSignatureInfo.signature, signingScheme: this.orderSignatureInfo.signingScheme, owner: from });
+            const sendOrderParams = Object.assign(Object.assign({}, this.getUnsignedOrder()), { quoteId, signature: this.orderSignatureInfo.signature, signingScheme: this.orderSignatureInfo.signingScheme, owner: from });
             this.orderId = yield this.orderBookApi.sendOrder(sendOrderParams);
             this.order = yield this.orderBookApi.getOrder(this.orderId);
             return this.orderId;

@@ -1,4 +1,4 @@
-import { EnrichedOrder, OrderBookApi, OrderQuoteResponse } from '@cowprotocol/cow-sdk';
+import { EnrichedOrder, OrderBookApi, OrderQuoteResponse, UnsignedOrder } from '@cowprotocol/cow-sdk';
 import { Signer } from '@ethersproject/abstract-signer';
 import { ChainId } from '../../../constants';
 import { CurrencyAmount } from '../../fractions/currencyAmount';
@@ -65,6 +65,7 @@ export declare class CoWTrade extends Trade {
      * @returns A GPv2 trade if found, otherwise undefined
      */
     static bestTradeExactOut({ currencyAmountOut, currencyIn, maximumSlippage, receiver, user, priceQuality, validTo }: CoWTradeGetBestTradeExactOutParams): Promise<CoWTrade | undefined>;
+    getUnsignedOrder(): UnsignedOrder;
     /**
      * Signs the order by adding signature
      * @param signer The signer
@@ -99,33 +100,39 @@ export declare class CoWTrade extends Trade {
      */
     static getAppData(chainId: ChainId): {
         ipfsHashInfo: {
-            cidV0: string;
-            appDataHash: string;
+            appData: string;
+            cid: string;
         };
         content: {
-            version: string;
             appCode: string;
             metadata: {
-                referrer: {
-                    address: string;
-                    version: string;
+                orderClass: {
+                    orderClass: string;
+                };
+                quote: {
+                    slippageBips: number;
                 };
             };
+            version: string;
+            environment: string;
         };
     } | {
         ipfsHashInfo: {
-            cidV0: string;
-            appDataHash: string;
+            appData: string;
+            cid: string;
         };
         content: {
-            version: string;
             appCode: string;
             metadata: {
-                referrer: {
-                    address: string;
-                    version: string;
+                orderClass: {
+                    orderClass: string;
+                };
+                quote: {
+                    slippageBips: number;
                 };
             };
+            version: string;
+            environment: string;
         };
     };
     /**
