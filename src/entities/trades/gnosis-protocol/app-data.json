@@ -1,34 +1,40 @@
 {
   "1": {
     "ipfsHashInfo": {
-      "cidV0": "QmP8cqtJzuMkMh1iUUDZgA1ZrusEyvFf3hZvJgHunoU4cQ",
-      "appDataHash": "0x0bc69b825ad473b704d0746eb61e98f8716b180004fe42dd902a089e605659a9"
+      "appData": "0xb4cdf61d2bc6f0cdccfc7cefc0a89601370350e37919a8197573922216f871e7",
+      "cid": "QmaWSFMxVLXcJmJ132UbuTcgirCJpULntNGz9phitxxe3Q"
     },
     "content": {
-      "version": "0.4.0",
       "appCode": "Seer",
       "metadata": {
-        "referrer": {
-          "address": "0x519b70055af55A007110B4Ff99b0eA33071c720a",
-          "version": "0.1.0"
+        "orderClass": {
+          "orderClass": "market"
+        },
+        "quote": {
+          "slippageBips": 100
         }
-      }
+      },
+      "version": "1.1.0",
+      "environment": "production"
     }
   },
   "100": {
     "ipfsHashInfo": {
-      "cidV0": "QmVcnb4PH9dXo2tNT2yCDuJKfHQW4HkN5kzJfipVyV1nwF",
-      "appDataHash": "0x6c240279a61e99270495394a46ace74065b511f8d3e6899f8ce87bbaefab21de"
+      "appData": "0xb4cdf61d2bc6f0cdccfc7cefc0a89601370350e37919a8197573922216f871e7",
+      "cid": "QmaWSFMxVLXcJmJ132UbuTcgirCJpULntNGz9phitxxe3Q"
     },
     "content": {
-      "version": "0.4.0",
       "appCode": "Seer",
       "metadata": {
-        "referrer": {
-          "address": "0xe716ec63c5673b3a4732d22909b38d779fa47c3f",
-          "version": "0.1.0"
+        "orderClass": {
+          "orderClass": "market"
+        },
+        "quote": {
+          "slippageBips": 100
         }
-      }
+      },
+      "version": "1.1.0",
+      "environment": "production"
     }
   }
 }

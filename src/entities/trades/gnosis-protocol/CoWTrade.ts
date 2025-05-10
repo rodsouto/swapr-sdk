@@ -175,7 +175,7 @@ export class CoWTrade extends Trade {
         env: 'prod',
       })
       const quoteResponse = await orderBookApi.getQuote({
-        appData: CoWTrade.getAppData(chainId).ipfsHashInfo.appDataHash, // App data hash,
+        appData: CoWTrade.getAppData(chainId).ipfsHashInfo.appData, // App data hash,
         buyToken: tokenOut.address,
         kind: OrderQuoteSideKindSell.SELL,
         from: user,
@@ -250,7 +250,7 @@ export class CoWTrade extends Trade {
         env: 'prod',
       })
       const quoteResponse = await orderBookApi.getQuote({
-        appData: CoWTrade.getAppData(chainId).ipfsHashInfo.appDataHash, // App data hash,
+        appData: CoWTrade.getAppData(chainId).ipfsHashInfo.appData, // App data hash,
         buyAmountAfterFee: amountOutBN.toString(),
         buyToken: tokenOut.address,
         from: user,
