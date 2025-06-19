@@ -49,6 +49,32 @@ Run tests
 yarn test
 ```
 
+## Custom RPC Configuration
+
+The SDK allows configuring custom RPC providers for different chains. This is useful when you need to use specific RPCs from your provider (such as Alchemy, Infura, etc.) or private RPCs.
+
+### Basic Usage
+
+```typescript
+import { configureRpcProviders, ChainId } from '@swapr/sdk'
+
+// Configure custom RPCs
+configureRpcProviders({
+  [ChainId.MAINNET]: 'https://eth-mainnet.alchemyapi.io/v2/YOUR_API_KEY',
+  [ChainId.POLYGON]: 'https://polygon-mainnet.infura.io/v3/YOUR_PROJECT_ID',
+  [ChainId.ARBITRUM_ONE]: 'https://arb-mainnet.g.alchemy.com/v2/YOUR_API_KEY',
+})
+```
+
+### Available Functions
+
+- `configureRpcProviders(providers)`: Configure custom RPCs
+- `getRpcProviderList()`: Get the complete list of RPCs
+- `resetRpcProviders()`: Reset to default RPCs
+- `getProvider(chainId)`: Get a provider for a specific chain
+
+For more details, see [RPC_CONFIGURATION.md](./RPC_CONFIGURATION.md).
+
 ## Eco Router Trades
 
 Swapr uses multiple trades to find best protocol and route for traders. Currently supported DEXs are

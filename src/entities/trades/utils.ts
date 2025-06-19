@@ -49,14 +49,10 @@ export function tryGetChainId(currencyAmount: CurrencyAmount, currency: Currency
 }
 
 /**
- * List of RPC provider URLs for different chains.
+ * Default RPC provider URLs for different chains.
  * @see https://chainlist.org/ lookup Chain info
  */
-/**
- * @TODO in https://linear.app/swaprdev/issue/SWA-65/provide-a-single-source-of-truth-for-chain-rpcs-from-the-sdk
- * Make `RPC_PROVIDER_LIST` exportable from this repo
- */
-export const RPC_PROVIDER_LIST: Record<ChainId, string> = {
+export const DEFAULT_RPC_PROVIDER_LIST: Record<ChainId, string> = {
   [ChainId.ARBITRUM_GOERLI]: 'https://goerli-rollup.arbitrum.io/rpc',
   [ChainId.ARBITRUM_ONE]: 'https://arb1.arbitrum.io/rpc',
   [ChainId.ARBITRUM_RINKEBY]: 'https://rinkeby.arbitrum.io/rpc',
@@ -75,11 +71,45 @@ export const RPC_PROVIDER_LIST: Record<ChainId, string> = {
 }
 
 /**
+ * Global RPC configuration that can be set by consumers
+ */
+let customRpcProviders: Partial<Record<ChainId, string>> = {}
+
+/**
+ * Configure custom RPC providers for specific chains
+ * @param providers Partial record of chain IDs to RPC URLs
+ */
+export function configureRpcProviders(providers: Partial<Record<ChainId, string>>) {
+  customRpcProviders = { ...customRpcProviders, ...providers }
+}
+
+/**
+ * Reset RPC providers to default values
+ */
+export function resetRpcProviders() {
+  customRpcProviders = {}
+}
+
+/**
+ * Get the effective RPC provider list (custom + defaults)
+ */
+export function getRpcProviderList(): Record<ChainId, string> {
+  return { ...DEFAULT_RPC_PROVIDER_LIST, ...customRpcProviders }
+}
+
+/**
+ * @deprecated Use DEFAULT_RPC_PROVIDER_LIST instead
+ * @TODO in https://linear.app/swaprdev/issue/SWA-65/provide-a-single-source-of-truth-for-chain-rpcs-from-the-sdk
+ * Make `RPC_PROVIDER_LIST` exportable from this repo
+ */
+export const RPC_PROVIDER_LIST: Record<ChainId, string> = DEFAULT_RPC_PROVIDER_LIST
+
+/**
  * Returns a RPC provider for the given chainId.
  * @param chainId The chainId
  * @returns The RPC provider
  */
 export function getProvider(chainId: ChainId) {
-  const host = RPC_PROVIDER_LIST[chainId]
+  const host = getRpcProviderList()[chainId]
   return new JsonRpcProvider(host)
 }
