@@ -29,7 +29,7 @@ export const baseTokens: BaseToken[] = [
     isToken: true,
     address: '0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d',
   },
-  {
+  /* {
     chainId: ChainId.GNOSIS,
     decimals: 6,
     symbol: 'USDC',
@@ -55,7 +55,7 @@ export const baseTokens: BaseToken[] = [
     isNative: false,
     isToken: true,
     address: '0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb',
-  },
+  }, */
   {
     chainId: ChainId.GNOSIS,
     decimals: 18,
