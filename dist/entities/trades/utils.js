@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getProvider = exports.RPC_PROVIDER_LIST = exports.tryGetChainId = exports.wrappedCurrency = exports.wrappedAmount = void 0;
+exports.getProvider = exports.RPC_PROVIDER_LIST = exports.getRpcProviderList = exports.resetRpcProviders = exports.configureRpcProviders = exports.DEFAULT_RPC_PROVIDER_LIST = exports.tryGetChainId = exports.wrappedCurrency = exports.wrappedAmount = void 0;
 const tslib_1 = require("tslib");
 const providers_1 = require("@ethersproject/providers");
 const tiny_invariant_1 = tslib_1.__importDefault(require("tiny-invariant"));
@@ -53,14 +53,10 @@ function tryGetChainId(currencyAmount, currency) {
 }
 exports.tryGetChainId = tryGetChainId;
 /**
- * List of RPC provider URLs for different chains.
+ * Default RPC provider URLs for different chains.
  * @see https://chainlist.org/ lookup Chain info
  */
-/**
- * @TODO in https://linear.app/swaprdev/issue/SWA-65/provide-a-single-source-of-truth-for-chain-rpcs-from-the-sdk
- * Make `RPC_PROVIDER_LIST` exportable from this repo
- */
-exports.RPC_PROVIDER_LIST = {
+exports.DEFAULT_RPC_PROVIDER_LIST = {
     [constants_1.ChainId.ARBITRUM_GOERLI]: 'https://goerli-rollup.arbitrum.io/rpc',
     [constants_1.ChainId.ARBITRUM_ONE]: 'https://arb1.arbitrum.io/rpc',
     [constants_1.ChainId.ARBITRUM_RINKEBY]: 'https://rinkeby.arbitrum.io/rpc',
@@ -78,12 +74,44 @@ exports.RPC_PROVIDER_LIST = {
     [constants_1.ChainId.ZK_SYNC_ERA_TESTNET]: 'https://testnet.era.zksync.dev',
 };
 /**
+ * Global RPC configuration that can be set by consumers
+ */
+let customRpcProviders = {};
+/**
+ * Configure custom RPC providers for specific chains
+ * @param providers Partial record of chain IDs to RPC URLs
+ */
+function configureRpcProviders(providers) {
+    customRpcProviders = Object.assign(Object.assign({}, customRpcProviders), providers);
+}
+exports.configureRpcProviders = configureRpcProviders;
+/**
+ * Reset RPC providers to default values
+ */
+function resetRpcProviders() {
+    customRpcProviders = {};
+}
+exports.resetRpcProviders = resetRpcProviders;
+/**
+ * Get the effective RPC provider list (custom + defaults)
+ */
+function getRpcProviderList() {
+    return Object.assign(Object.assign({}, exports.DEFAULT_RPC_PROVIDER_LIST), customRpcProviders);
+}
+exports.getRpcProviderList = getRpcProviderList;
+/**
+ * @deprecated Use DEFAULT_RPC_PROVIDER_LIST instead
+ * @TODO in https://linear.app/swaprdev/issue/SWA-65/provide-a-single-source-of-truth-for-chain-rpcs-from-the-sdk
+ * Make `RPC_PROVIDER_LIST` exportable from this repo
+ */
+exports.RPC_PROVIDER_LIST = exports.DEFAULT_RPC_PROVIDER_LIST;
+/**
  * Returns a RPC provider for the given chainId.
  * @param chainId The chainId
  * @returns The RPC provider
  */
 function getProvider(chainId) {
-    const host = exports.RPC_PROVIDER_LIST[chainId];
+    const host = getRpcProviderList()[chainId];
     return new providers_1.JsonRpcProvider(host);
 }
 exports.getProvider = getProvider;

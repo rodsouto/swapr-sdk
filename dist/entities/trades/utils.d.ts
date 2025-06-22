@@ -28,10 +28,25 @@ export declare function wrappedCurrency(currency: Currency, chainId: ChainId): T
  */
 export declare function tryGetChainId(currencyAmount: CurrencyAmount, currency: Currency): ChainId | undefined;
 /**
- * List of RPC provider URLs for different chains.
+ * Default RPC provider URLs for different chains.
  * @see https://chainlist.org/ lookup Chain info
  */
+export declare const DEFAULT_RPC_PROVIDER_LIST: Record<ChainId, string>;
 /**
+ * Configure custom RPC providers for specific chains
+ * @param providers Partial record of chain IDs to RPC URLs
+ */
+export declare function configureRpcProviders(providers: Partial<Record<ChainId, string>>): void;
+/**
+ * Reset RPC providers to default values
+ */
+export declare function resetRpcProviders(): void;
+/**
+ * Get the effective RPC provider list (custom + defaults)
+ */
+export declare function getRpcProviderList(): Record<ChainId, string>;
+/**
+ * @deprecated Use DEFAULT_RPC_PROVIDER_LIST instead
  * @TODO in https://linear.app/swaprdev/issue/SWA-65/provide-a-single-source-of-truth-for-chain-rpcs-from-the-sdk
  * Make `RPC_PROVIDER_LIST` exportable from this repo
  */

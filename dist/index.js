@@ -11,4 +11,5 @@ tslib_1.__exportStar(require("./errors"), exports);
 tslib_1.__exportStar(require("./fetcher"), exports);
 var utils_1 = require("./utils");
 Object.defineProperty(exports, "parseBigintIsh", { enumerable: true, get: function () { return utils_1.parseBigintIsh; } });
+tslib_1.__exportStar(require("./entities/trades/utils"), exports);
 //# sourceMappingURL=index.js.map

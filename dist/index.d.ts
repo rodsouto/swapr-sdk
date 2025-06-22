@@ -6,3 +6,4 @@ export * from './entities';
 export * from './errors';
 export * from './fetcher';
 export { parseBigintIsh } from './utils';
+export * from './entities/trades/utils';
