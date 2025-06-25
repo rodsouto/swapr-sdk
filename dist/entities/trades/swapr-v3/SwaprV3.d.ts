@@ -28,7 +28,7 @@ export interface SwaprV3GetQuoteParams {
 export declare class SwaprV3Trade extends TradeWithSwapTransaction {
     bestRoute: BestRoute;
     constructor({ inputAmount, outputAmount, maximumSlippage, priceImpact, tradeType, chainId, fee, bestRoute, }: SwaprV3ConstructorParams);
-    static getQuote({ amount, quoteCurrency, tradeType, maximumSlippage }: SwaprV3GetQuoteParams, provider?: BaseProvider): Promise<SwaprV3Trade | null>;
+    static getQuote({ amount, quoteCurrency, tradeType, maximumSlippage }: SwaprV3GetQuoteParams, provider?: BaseProvider, isSingleHop?: boolean): Promise<SwaprV3Trade | null>;
     minimumAmountOut(): CurrencyAmount;
     maximumAmountIn(): CurrencyAmount;
     swapTransaction(options: TradeOptions): Promise<UnsignedTransaction>;

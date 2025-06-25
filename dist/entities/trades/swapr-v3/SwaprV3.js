@@ -43,7 +43,7 @@ class SwaprV3Trade extends trade_1.TradeWithSwapTransaction {
         });
         this.bestRoute = bestRoute;
     }
-    static getQuote({ amount, quoteCurrency, tradeType, maximumSlippage }, provider) {
+    static getQuote({ amount, quoteCurrency, tradeType, maximumSlippage }, provider, isSingleHop) {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
             const isTradeExactInput = tradeType === constants_1.TradeType.EXACT_INPUT;
             const chainId = (0, utils_1.tryGetChainId)(amount, quoteCurrency);
@@ -59,6 +59,48 @@ class SwaprV3Trade extends trade_1.TradeWithSwapTransaction {
             const quoteToken = currency_1.Currency.isNative(quoteCurrency)
                 ? token_1.WXDAI[constants_1.ChainId.GNOSIS]
                 : new token_1.Token(constants_1.ChainId.GNOSIS, quoteCurrency.address, quoteCurrency.decimals, quoteCurrency.symbol, quoteCurrency.name);
+            const parsedAmount = (0, units_1.parseUnits)(amount.toSignificant(), amount.currency.decimals);
+            if (isSingleHop) {
+                if (isTradeExactInput) {
+                    const quotedAmountOut = yield (0, contracts_1.getQuoterContract)()
+                        .callStatic.quoteExactInputSingle(setToken.address, quoteToken.address, parsedAmount, 0)
+                        .catch((error) => {
+                        console.error(`Error sending quoteExactInputSingle transaction: ${error}`);
+                        return null;
+                    });
+                    if (quotedAmountOut) {
+                        return new SwaprV3Trade({
+                            maximumSlippage,
+                            inputAmount: amount,
+                            outputAmount: new fractions_1.TokenAmount(quoteToken, quotedAmountOut),
+                            tradeType,
+                            chainId,
+                            priceImpact: new fractions_1.Percent('0', '100'),
+                            fee: new fractions_1.Percent('100', ALGEBRA_FEE_PARTS_PER_MILLION),
+                        });
+                    }
+                }
+                else {
+                    const quotedAmountIn = yield (0, contracts_1.getQuoterContract)()
+                        .callStatic.quoteExactOutputSingle(quoteToken.address, setToken.address, parsedAmount, 0)
+                        .catch((error) => {
+                        console.error(`Error sending quoteExactOutputSingle transaction: ${error}`);
+                        return null;
+                    });
+                    if (quotedAmountIn) {
+                        return new SwaprV3Trade({
+                            maximumSlippage,
+                            inputAmount: new fractions_1.TokenAmount(quoteToken, quotedAmountIn),
+                            outputAmount: amount,
+                            tradeType,
+                            chainId,
+                            priceImpact: new fractions_1.Percent('0', '100'),
+                            fee: new fractions_1.Percent('100', ALGEBRA_FEE_PARTS_PER_MILLION),
+                        });
+                    }
+                }
+                return null;
+            }
             const routes = isTradeExactInput
                 ? yield (0, routes_1.getRoutes)(setToken, quoteToken, chainId)
                 : yield (0, routes_1.getRoutes)(quoteToken, setToken, chainId);
@@ -105,7 +147,6 @@ class SwaprV3Trade extends trade_1.TradeWithSwapTransaction {
             const fee = (routes === null || routes === void 0 ? void 0 : routes.length) > 0 && routes[0].pools.length > 0
                 ? new fractions_1.Percent(routes[0].pools[0].fee.toString(), ALGEBRA_FEE_PARTS_PER_MILLION)
                 : new fractions_1.Percent('0', '1');
-            const parsedAmount = (0, units_1.parseUnits)(amount.toSignificant(), amount.currency.decimals);
             if (!bestRoute)
                 return null;
             const singleHop = bestRoute.pools.length === 1;
