@@ -84,6 +84,7 @@ export class SwaprV3Trade extends TradeWithSwapTransaction {
   static async getQuote(
     { amount, quoteCurrency, tradeType, maximumSlippage }: SwaprV3GetQuoteParams,
     provider?: BaseProvider,
+    isSingleHop?: boolean,
   ): Promise<SwaprV3Trade | null> {
     const isTradeExactInput = tradeType === TradeType.EXACT_INPUT
     const chainId = tryGetChainId(amount, quoteCurrency)
@@ -118,11 +119,52 @@ export class SwaprV3Trade extends TradeWithSwapTransaction {
           quoteCurrency.symbol,
           quoteCurrency.name,
         )
+    const parsedAmount = parseUnits(amount.toSignificant(), amount.currency.decimals)
+    if (isSingleHop) {
+      if (isTradeExactInput) {
+        const quotedAmountOut = await getQuoterContract()
+          .callStatic.quoteExactInputSingle(setToken.address, quoteToken.address, parsedAmount, 0)
+          .catch((error) => {
+            console.error(`Error sending quoteExactInputSingle transaction: ${error}`)
+            return null
+          })
+        if (quotedAmountOut) {
+          return new SwaprV3Trade({
+            maximumSlippage,
+            inputAmount: amount,
+            outputAmount: new TokenAmount(quoteToken, quotedAmountOut),
+            tradeType,
+            chainId,
+            priceImpact: new Percent('0', '100'),
+            fee: new Percent('100', ALGEBRA_FEE_PARTS_PER_MILLION),
+          })
+        }
+      } else {
+        const quotedAmountIn = await getQuoterContract()
+          .callStatic.quoteExactOutputSingle(quoteToken.address, setToken.address, parsedAmount, 0)
+          .catch((error) => {
+            console.error(`Error sending quoteExactOutputSingle transaction: ${error}`)
+            return null
+          })
+
+        if (quotedAmountIn) {
+          return new SwaprV3Trade({
+            maximumSlippage,
+            inputAmount: new TokenAmount(quoteToken, quotedAmountIn),
+            outputAmount: amount,
+            tradeType,
+            chainId,
+            priceImpact: new Percent('0', '100'),
+            fee: new Percent('100', ALGEBRA_FEE_PARTS_PER_MILLION),
+          })
+        }
+      }
+      return null
+    }
 
     const routes = isTradeExactInput
       ? await getRoutes(setToken as UniswapToken, quoteToken as UniswapToken, chainId)
       : await getRoutes(quoteToken as UniswapToken, setToken as UniswapToken, chainId)
-
     const quoteParams = routes.map((route) => [
       encodeRouteToPath(route, !isTradeExactInput),
       `0x${amount.raw.toString(16)}`,
@@ -132,7 +174,6 @@ export class SwaprV3Trade extends TradeWithSwapTransaction {
     const quotesResults = await singleContractMultipleData(methodName, quoteParams, {
       gasRequired: DEFAULT_GAS_QUOTE,
     })
-
     const { bestRoute, amount: routeAmount } = quotesResults.reduce(
       (currentBest: BestCurrentRoute, { result }, index) => {
         if (!result) return currentBest
@@ -165,18 +206,13 @@ export class SwaprV3Trade extends TradeWithSwapTransaction {
         amount: null,
       },
     )
-
     const fee =
       routes?.length > 0 && routes[0].pools.length > 0
         ? new Percent(routes[0].pools[0].fee.toString(), ALGEBRA_FEE_PARTS_PER_MILLION)
         : new Percent('0', '1')
-
-    const parsedAmount = parseUnits(amount.toSignificant(), amount.currency.decimals)
-
     if (!bestRoute) return null
 
     const singleHop = bestRoute.pools.length === 1
-
     if (singleHop) {
       if (isTradeExactInput) {
         const quotedAmountOut = await getQuoterContract()
@@ -185,7 +221,6 @@ export class SwaprV3Trade extends TradeWithSwapTransaction {
             console.error(`Error sending quoteExactInputSingle transaction: ${error}`)
             return null
           })
-
         if (quotedAmountOut) {
           return new SwaprV3Trade({
             maximumSlippage,
