@@ -99,7 +99,6 @@ export class CoWTrade extends Trade {
     })
     this.orderBookApi = orderBookApi
     this.quote = quote
-
     this.executionPriceWithoutFee = new Price({
       baseCurrency: inputAmount.currency,
       quoteCurrency: outputAmount.currency,
@@ -262,7 +261,7 @@ export class CoWTrade extends Trade {
         priceQuality,
       })
 
-      const inputAmount = Currency.isNative(tokenIn)
+      const inputAmount = Currency.isNative(currencyIn)
         ? CurrencyAmount.nativeCurrency(quoteResponse.quote.sellAmount.toString(), chainId)
         : new TokenAmount(tokenIn, quoteResponse.quote.sellAmount.toString())
 
@@ -276,6 +275,7 @@ export class CoWTrade extends Trade {
       const feeAmount = Currency.isNative(currencyIn)
         ? CurrencyAmount.nativeCurrency(ZERO, chainId)
         : new TokenAmount(currencyIn as Token, ZERO)
+
 
       const sellAmount = JSBI.add(
         JSBI.BigInt(quoteResponse.quote.sellAmount.toString()),

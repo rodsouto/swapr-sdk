@@ -192,7 +192,7 @@ class CoWTrade extends trade_1.Trade {
                     validTo: validTo || (0, dayjs_1.default)().add(1, 'h').unix(),
                     priceQuality,
                 });
-                const inputAmount = currency_1.Currency.isNative(tokenIn)
+                const inputAmount = currency_1.Currency.isNative(currencyIn)
                     ? currencyAmount_1.CurrencyAmount.nativeCurrency(quoteResponse.quote.sellAmount.toString(), chainId)
                     : new tokenAmount_1.TokenAmount(tokenIn, quoteResponse.quote.sellAmount.toString());
                 const outputAmount = currency_1.Currency.isNative(currencyAmountOut.currency)
