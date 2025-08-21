@@ -23,6 +23,8 @@ const toFixedRounding = {
     [constants_1.Rounding.ROUND_UP]: 3 /* RoundingMode.RoundUp */,
 };
 class Fraction {
+    numerator;
+    denominator;
     constructor(numerator, denominator = constants_2.ONE) {
         this.numerator = (0, utils_1.parseBigintIsh)(numerator);
         this.denominator = (0, utils_1.parseBigintIsh)(denominator);

@@ -10,6 +10,10 @@ const tiny_invariant_1 = tslib_1.__importDefault(require("tiny-invariant"));
  * @template TOutput The output token
  */
 class Route {
+    pools;
+    tokenPath;
+    input;
+    output;
     /**
      * Creates an instance of route.
      * @param pools An array of `Pool` objects, ordered by the route the swap will take
@@ -17,7 +21,6 @@ class Route {
      * @param output The output token
      */
     constructor(pools, input, output) {
-        this._midPrice = null;
         (0, tiny_invariant_1.default)(pools.length > 0, 'POOLS');
         const chainId = pools[0].chainId;
         const allOnSameChain = pools.every((pool) => pool.chainId === chainId);
@@ -38,8 +41,9 @@ class Route {
         this.pools = pools;
         this.tokenPath = tokenPath;
         this.input = input;
-        this.output = output !== null && output !== void 0 ? output : tokenPath[tokenPath.length - 1];
+        this.output = output ?? tokenPath[tokenPath.length - 1];
     }
+    _midPrice = null;
     /**
      * Returns the mid price of the route
      */

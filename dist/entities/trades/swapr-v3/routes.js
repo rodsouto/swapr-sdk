@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getRoutes = exports.computeAllRoutes = void 0;
-const tslib_1 = require("tslib");
 const sdk_core_1 = require("@uniswap/sdk-core");
 const route_1 = require("./entities/route");
 const pools_1 = require("./pools");
@@ -34,11 +33,9 @@ function computeAllRoutes(currencyIn, currencyOut, pools, chainId, currentPath =
     return allPaths;
 }
 exports.computeAllRoutes = computeAllRoutes;
-function getRoutes(currencyIn, currencyOut, chainId) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
-        const pools = yield (0, pools_1.getPools)(currencyIn, currencyOut);
-        return computeAllRoutes(currencyIn, currencyOut, pools, chainId, [], [], currencyIn, 3);
-    });
+async function getRoutes(currencyIn, currencyOut, chainId) {
+    const pools = await (0, pools_1.getPools)(currencyIn, currencyOut);
+    return computeAllRoutes(currencyIn, currencyOut, pools, chainId, [], [], currencyIn, 3);
 }
 exports.getRoutes = getRoutes;
 //# sourceMappingURL=routes.js.map

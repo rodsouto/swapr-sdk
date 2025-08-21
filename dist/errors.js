@@ -8,9 +8,9 @@ const CAN_SET_PROTOTYPE = 'setPrototypeOf' in Object;
  * obtained by sending any amount of input.
  */
 class InsufficientReservesError extends Error {
+    isInsufficientReservesError = true;
     constructor() {
         super();
-        this.isInsufficientReservesError = true;
         this.name = this.constructor.name;
         if (CAN_SET_PROTOTYPE)
             Object.setPrototypeOf(this, new.target.prototype);
@@ -22,9 +22,9 @@ exports.InsufficientReservesError = InsufficientReservesError;
  * than the price of a single unit of output after fees.
  */
 class InsufficientInputAmountError extends Error {
+    isInsufficientInputAmountError = true;
     constructor() {
         super();
-        this.isInsufficientInputAmountError = true;
         this.name = this.constructor.name;
         if (CAN_SET_PROTOTYPE)
             Object.setPrototypeOf(this, new.target.prototype);

@@ -7,6 +7,11 @@ const currency_1 = require("./currency");
 const price_1 = require("./fractions/price");
 const token_1 = require("./token");
 class Route {
+    pairs;
+    path;
+    input;
+    output;
+    midPrice;
     constructor(pairs, input, output) {
         (0, tiny_invariant_1.default)(pairs.length > 0, 'PAIRS');
         (0, tiny_invariant_1.default)(pairs.every((pair) => pair.chainId === pairs[0].chainId), 'CHAIN_IDS');
@@ -27,7 +32,7 @@ class Route {
         this.path = path;
         this.midPrice = price_1.Price.fromRoute(this);
         this.input = input;
-        this.output = output !== null && output !== void 0 ? output : path[path.length - 1];
+        this.output = output ?? path[path.length - 1];
     }
     get chainId() {
         return this.pairs[0].chainId;

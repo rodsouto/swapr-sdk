@@ -36,7 +36,7 @@ exports.TICK_SPACINGS = {
 function computePoolAddress({ poolDeployer, tokenA, tokenB, initCodeHashManualOverride, }) {
     const [token0, token1] = tokenA.sortsBefore(tokenB) ? [tokenA, tokenB] : [tokenB, tokenA]; // does safety checks
     return {
-        address: (0, address_1.getCreate2Address)(poolDeployer, (0, solidity_1.keccak256)(['bytes'], [abi_1.defaultAbiCoder.encode(['address', 'address'], [token0.address, token1.address])]), initCodeHashManualOverride !== null && initCodeHashManualOverride !== void 0 ? initCodeHashManualOverride : constants_1.POOL_INIT_CODE_HASH),
+        address: (0, address_1.getCreate2Address)(poolDeployer, (0, solidity_1.keccak256)(['bytes'], [abi_1.defaultAbiCoder.encode(['address', 'address'], [token0.address, token1.address])]), initCodeHashManualOverride ?? constants_1.POOL_INIT_CODE_HASH),
         token0,
         token1,
     };

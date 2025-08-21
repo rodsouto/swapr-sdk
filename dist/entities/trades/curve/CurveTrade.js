@@ -35,6 +35,14 @@ const debugCurveGetQuote = (0, debug_1.default)('ecoRouter:curve:getQuote');
  */
 class CurveTrade extends trade_1.Trade {
     /**
+     * The Unsigned transaction
+     */
+    transactionRequest;
+    /**
+     * The contract instance through which the trade go through
+     */
+    contract;
+    /**
      *
      * @param {Object} obj Curve trade options.
      * @param {CurrencyAmount} obj.inputAmount - Input token
@@ -102,10 +110,8 @@ class CurveTrade extends trade_1.Trade {
      * @param {string} tokenOut
      * @returns a `boolean` whether the tokens can be exchanged on Curve Finance pools
      */
-    static canRoute(tokenIn, tokenOut) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            return (0, contracts_2.getRouter)().can_route(tokenIn.address, tokenOut.address);
-        });
+    static async canRoute(tokenIn, tokenOut) {
+        return (0, contracts_2.getRouter)().can_route(tokenIn.address, tokenOut.address);
     }
     /**
      * Given an a sell token and a buy token, and amount of sell token, returns a
@@ -117,290 +123,78 @@ class CurveTrade extends trade_1.Trade {
      * @param {Provider} provider an optional provider, the router defaults public providers
      * @returns the best trade if found
      */
-    static getQuote({ currencyAmountIn, currencyOut, maximumSlippage, receiver = constants_1.AddressZero }, provider) {
-        var _a, _b, _c, _d, _e, _f, _g;
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            // Try to extract the chain ID from the tokens
-            const chainId = (0, utils_1.tryGetChainId)(currencyAmountIn, currencyOut);
-            // Require the chain ID
-            (0, tiny_invariant_1.default)(chainId !== undefined, 'CHAIN_ID');
-            if (!routable_platform_1.RoutablePlatform.CURVE.supportsChain(chainId)) {
-                return undefined;
-            }
-            const wrappedTokenIn = (0, utils_1.wrappedCurrency)(currencyAmountIn.currency, chainId);
-            const wrappedtokenOut = (0, utils_1.wrappedCurrency)(currencyOut, chainId);
-            // Get the token's data from Curve
-            const tokenIn = (0, utils_3.getCurveToken)(wrappedTokenIn, chainId);
-            const tokenOut = (0, utils_3.getCurveToken)(wrappedtokenOut, chainId);
-            // Get the native address
-            const nativeCurrency = currency_1.Currency.getNative(chainId);
-            // Determine if the currency sent is native
-            // First using address
-            // then, using symbol/name
-            const isNativeAssetIn = ((_b = (_a = currencyAmountIn.currency) === null || _a === void 0 ? void 0 : _a.address) === null || _b === void 0 ? void 0 : _b.toLocaleLowerCase()) === ((_c = nativeCurrency.address) === null || _c === void 0 ? void 0 : _c.toLowerCase())
+    static async getQuote({ currencyAmountIn, currencyOut, maximumSlippage, receiver = constants_1.AddressZero }, provider) {
+        // Try to extract the chain ID from the tokens
+        const chainId = (0, utils_1.tryGetChainId)(currencyAmountIn, currencyOut);
+        // Require the chain ID
+        (0, tiny_invariant_1.default)(chainId !== undefined, 'CHAIN_ID');
+        if (!routable_platform_1.RoutablePlatform.CURVE.supportsChain(chainId)) {
+            return undefined;
+        }
+        const wrappedTokenIn = (0, utils_1.wrappedCurrency)(currencyAmountIn.currency, chainId);
+        const wrappedtokenOut = (0, utils_1.wrappedCurrency)(currencyOut, chainId);
+        // Get the token's data from Curve
+        const tokenIn = (0, utils_3.getCurveToken)(wrappedTokenIn, chainId);
+        const tokenOut = (0, utils_3.getCurveToken)(wrappedtokenOut, chainId);
+        // Get the native address
+        const nativeCurrency = currency_1.Currency.getNative(chainId);
+        // Determine if the currency sent is native
+        // First using address
+        // then, using symbol/name
+        const isNativeAssetIn = currencyAmountIn.currency?.address?.toLocaleLowerCase() === nativeCurrency.address?.toLowerCase()
+            ? true
+            : currencyAmountIn.currency === nativeCurrency;
+        const isNativeAssetOut = tokenOut?.address.toLowerCase() == nativeCurrency.address?.toLowerCase()
+            ? true
+            : currencyOut.name?.toLowerCase() === nativeCurrency.name?.toLowerCase()
                 ? true
-                : currencyAmountIn.currency === nativeCurrency;
-            const isNativeAssetOut = (tokenOut === null || tokenOut === void 0 ? void 0 : tokenOut.address.toLowerCase()) == ((_d = nativeCurrency.address) === null || _d === void 0 ? void 0 : _d.toLowerCase())
-                ? true
-                : ((_e = currencyOut.name) === null || _e === void 0 ? void 0 : _e.toLowerCase()) === ((_f = nativeCurrency.name) === null || _f === void 0 ? void 0 : _f.toLowerCase())
-                    ? true
-                    : currencyOut === nativeCurrency;
-            // Validations
-            (0, tiny_invariant_1.default)(tokenIn != undefined, 'NO_TOKEN_IN');
-            (0, tiny_invariant_1.default)(tokenOut != undefined, 'NO_TOKEN_OUT');
-            (0, tiny_invariant_1.default)(tokenIn.address.toLowerCase() != tokenOut.address.toLowerCase(), 'SAME_TOKEN');
-            debugCurveGetQuote({ provider, newProvider: (0, utils_2.getProvider)(chainId) });
-            provider = provider || (0, utils_2.getProvider)(chainId);
-            let value = '0x0'; // With Curve, most value exchanged is ERC20
-            // Get the Router contract to populate the unsigned transaction
-            // Get all Curve pools for the chain
-            const curvePools = pools_1.CURVE_POOLS[chainId];
-            // Basic trade information
-            const amountInBN = (0, units_1.parseUnits)(currencyAmountIn.toSignificant(), tokenIn.decimals);
-            if (isNativeAssetIn) {
-                value = amountInBN.toString();
+                : currencyOut === nativeCurrency;
+        // Validations
+        (0, tiny_invariant_1.default)(tokenIn != undefined, 'NO_TOKEN_IN');
+        (0, tiny_invariant_1.default)(tokenOut != undefined, 'NO_TOKEN_OUT');
+        (0, tiny_invariant_1.default)(tokenIn.address.toLowerCase() != tokenOut.address.toLowerCase(), 'SAME_TOKEN');
+        debugCurveGetQuote({ provider, newProvider: (0, utils_2.getProvider)(chainId) });
+        provider = provider || (0, utils_2.getProvider)(chainId);
+        let value = '0x0'; // With Curve, most value exchanged is ERC20
+        // Get the Router contract to populate the unsigned transaction
+        // Get all Curve pools for the chain
+        const curvePools = pools_1.CURVE_POOLS[chainId];
+        // Basic trade information
+        const amountInBN = (0, units_1.parseUnits)(currencyAmountIn.toSignificant(), tokenIn.decimals);
+        if (isNativeAssetIn) {
+            value = amountInBN.toString();
+        }
+        // Majority of Curve pools
+        // have 4bps fee of which 50% goes to Curve
+        const FEE_DECIMAL = 0.0004;
+        let fee = new percent_1.Percent('4', '10000');
+        // Exchange fee
+        const exchangeRateWithoutFee = 1;
+        const exchangeRate = 1 - FEE_DECIMAL;
+        debugCurveGetQuote({
+            isNativeAssetIn,
+            isNativeAssetOut,
+        });
+        // Use Custom contract for native xDAI<>USDT and xDAI<>USDC trades on Gnosis Chain
+        if (chainId === constants_2.ChainId.XDAI && (isNativeAssetIn || isNativeAssetOut)) {
+            const poolContract = (0, contracts_2.getCurveDAIExchangeContract)();
+            const tokenInAddress = isNativeAssetIn && nativeCurrency.address != undefined ? nativeCurrency.address : tokenIn.address;
+            const tokenOutAddress = isNativeAssetOut && nativeCurrency.address != undefined ? nativeCurrency.address : tokenOut.address;
+            const estimatedAmountOutParams = [tokenInAddress, tokenOutAddress, amountInBN.toString()];
+            const estimatedAmountOut = await poolContract.getEstimatedAmountOut(...estimatedAmountOutParams);
+            // Prepapre signature and params for Curve3PoolExchange
+            let exchangeSignature = 'exchangeExactNativeTokenForERC20';
+            let exchangeParams = [tokenOut.address, estimatedAmountOut, receiver];
+            if (isNativeAssetOut) {
+                exchangeSignature = 'exchangeExactERC20ForNativeToken';
+                exchangeParams = [tokenInAddress, amountInBN.toString(), estimatedAmountOut, receiver];
             }
-            // Majority of Curve pools
-            // have 4bps fee of which 50% goes to Curve
-            const FEE_DECIMAL = 0.0004;
-            let fee = new percent_1.Percent('4', '10000');
-            // Exchange fee
-            const exchangeRateWithoutFee = 1;
-            const exchangeRate = 1 - FEE_DECIMAL;
-            debugCurveGetQuote({
-                isNativeAssetIn,
-                isNativeAssetOut,
-            });
-            // Use Custom contract for native xDAI<>USDT and xDAI<>USDC trades on Gnosis Chain
-            if (chainId === constants_2.ChainId.XDAI && (isNativeAssetIn || isNativeAssetOut)) {
-                const poolContract = (0, contracts_2.getCurveDAIExchangeContract)();
-                const tokenInAddress = isNativeAssetIn && nativeCurrency.address != undefined ? nativeCurrency.address : tokenIn.address;
-                const tokenOutAddress = isNativeAssetOut && nativeCurrency.address != undefined ? nativeCurrency.address : tokenOut.address;
-                const estimatedAmountOutParams = [tokenInAddress, tokenOutAddress, amountInBN.toString()];
-                const estimatedAmountOut = yield poolContract.getEstimatedAmountOut(...estimatedAmountOutParams);
-                // Prepapre signature and params for Curve3PoolExchange
-                let exchangeSignature = 'exchangeExactNativeTokenForERC20';
-                let exchangeParams = [tokenOut.address, estimatedAmountOut, receiver];
-                if (isNativeAssetOut) {
-                    exchangeSignature = 'exchangeExactERC20ForNativeToken';
-                    exchangeParams = [tokenInAddress, amountInBN.toString(), estimatedAmountOut, receiver];
-                }
-                debugCurveGetQuote('populating transaction ', {
-                    exchangeSignature,
-                    exchangeParams,
-                    value,
-                });
-                const populatedTransaction = yield poolContract.populateTransaction[exchangeSignature](...exchangeParams, {
-                    value,
-                });
-                return {
-                    currencyAmountIn,
-                    populatedTransaction,
-                    currencyOut,
-                    estimatedAmountOut: currency_1.Currency.isNative(currencyOut)
-                        ? currencyAmount_1.CurrencyAmount.nativeCurrency(estimatedAmountOut.toBigInt(), chainId)
-                        : new tokenAmount_1.TokenAmount(wrappedtokenOut, estimatedAmountOut.toBigInt()),
-                    maximumSlippage,
-                    fee,
-                    to: poolContract.address,
-                    exchangeRateWithoutFee,
-                    exchangeRate,
-                    contract: poolContract,
-                };
-            }
-            // Check if the two pairs are of different type
-            // When the pair types are different, there is
-            // a potential that Curve Smart Router can handle the trade
-            const isCryptoSwap = tokenIn.type !== tokenOut.type;
-            const factoryPoolsMemoized = (0, memoizee_1.default)(utils_3.fetchCurveFactoryPools);
-            const factoryPools = yield factoryPoolsMemoized(chainId);
-            const allPools = curvePools.concat(factoryPools);
-            // Find all pools that the trade can go through from both factory and regular pools
-            let routablePools = yield (0, utils_3.getRoutablePools)(allPools, tokenIn, tokenOut, chainId);
-            // On mainnet, use the exchange info to get the best pool
-            const bestPoolAndOutputRes = chainId === constants_2.ChainId.MAINNET
-                ? yield (0, contracts_2.getBestCurvePoolAndOutput)({
-                    amountIn: amountInBN,
-                    tokenInAddress: tokenIn.address,
-                    tokenOutAddress: tokenOut.address,
-                    chainId,
-                })
-                : undefined;
-            // If a pool is found
-            // Ignore the manual off-chain search
-            if (bestPoolAndOutputRes) {
-                debugCurveGetQuote(`Found best pool from Curve registry`, bestPoolAndOutputRes);
-                const bestPool = routablePools.filter((pool) => pool.address.toLowerCase() === bestPoolAndOutputRes.poolAddress.toLowerCase());
-                if (bestPool.length !== 0)
-                    routablePools = bestPool;
-            }
-            debugCurveGetQuote('Routeable pools: ', routablePools);
-            // Start finding a possible pool
-            // First via Curve's internal best pool finder
-            // On Mainnet, try to find a route via Curve's Smart Router
-            if (isCryptoSwap && chainId === constants_2.ChainId.MAINNET) {
-                const exchangeRoutingInfo = yield (0, contracts_2.getExchangeRoutingInfo)({
-                    amountIn: amountInBN.toString(),
-                    chainId: constants_2.ChainId.MAINNET,
-                    tokenInAddress: tokenIn.address,
-                    tokenOutAddress: tokenOut.address,
-                });
-                // If the swap can be handled by the smart router, use it
-                if (exchangeRoutingInfo) {
-                    const params = [
-                        amountInBN.toString(),
-                        exchangeRoutingInfo.routes,
-                        exchangeRoutingInfo.indices,
-                        exchangeRoutingInfo.expectedAmountOut.mul(98).div(100).toString(),
-                    ];
-                    const curveRouterContract = (0, contracts_2.getRouter)();
-                    debugCurveGetQuote(`Found a route via Smart Router at ${curveRouterContract.address}`, params);
-                    const populatedTransaction = yield curveRouterContract.populateTransaction.exchange(...params, {
-                        value,
-                    });
-                    // Add 30% gas buffer
-                    populatedTransaction.gasLimit = (_g = populatedTransaction.gasLimit) === null || _g === void 0 ? void 0 : _g.mul(130).div(100);
-                    return {
-                        fee,
-                        estimatedAmountOut: new tokenAmount_1.TokenAmount(currencyOut, exchangeRoutingInfo.expectedAmountOut.toBigInt()),
-                        currencyAmountIn,
-                        currencyOut,
-                        maximumSlippage,
-                        populatedTransaction,
-                        to: curveRouterContract.address,
-                        exchangeRateWithoutFee,
-                        exchangeRate,
-                        contract: curveRouterContract,
-                    };
-                }
-            }
-            // Continue using pool-by-pool cases
-            // Exit since no pools have been found
-            if (routablePools.length === 0) {
-                console.error('CurveTrade: no pools found for trade pair');
-                return;
-            }
-            // The final step
-            // Compile all the output
-            // Using Multicall contract
-            const quoteFromPoolList = yield Promise.all(routablePools.map((pool) => tslib_1.__awaiter(this, void 0, void 0, function* () {
-                const poolContract = new contracts_1.Contract(pool.address, pool.abi, provider);
-                // Map token address to index
-                const tokenInIndex = (0, utils_3.getTokenIndex)(pool, tokenIn.address);
-                const tokenOutIndex = (0, utils_3.getTokenIndex)(pool, tokenOut.address);
-                // Skip pool that return -1
-                if (tokenInIndex < 0 || tokenOutIndex < 0) {
-                    console.error(`Curve: pool does not have one of tokens: ${tokenIn.symbol}, ${tokenOut.symbol}`);
-                }
-                // Get expected output from the pool
-                // Use underylying signature if the pool is a meta pool
-                // A meta pool is a pool composed of an ERC20 pair with the Curve base 3Pool (DAI+USDC+USDT)
-                const dyMethodSignature = pool.isMeta ? 'get_dy_underlying' : 'get_dy';
-                // Construct the params
-                const dyMethodParams = [tokenInIndex.toString(), tokenOutIndex.toString(), currencyAmountIn.raw.toString()];
-                debugCurveGetQuote(`Fetching estimated output from ${pool.address}`, {
-                    dyMethodSignature,
-                    dyMethodParams,
-                });
-                try {
-                    const estimatedAmountOut = (yield poolContract[dyMethodSignature](...dyMethodParams));
-                    // Return the call bytes
-                    return {
-                        pool,
-                        estimatedAmountOut,
-                        poolContract,
-                    };
-                }
-                catch (error) {
-                    console.error(`CurveTrade error: failed to fetch estimated out from `, {
-                        address: pool.address,
-                        dyMethodSignature,
-                        dyMethodParams,
-                        error,
-                    });
-                    return {
-                        pool,
-                        estimatedAmountOut: bignumber_1.BigNumber.from(0),
-                        poolContract,
-                        error,
-                    };
-                }
-            })));
-            // Sort the pool by best output
-            const estimatedAmountOutPerPoolSorted = quoteFromPoolList
-                .filter((pool) => {
-                return pool.estimatedAmountOut.gt(0) && pool.error == undefined;
-            })
-                .sort((poolA, poolB) => poolA.estimatedAmountOut.gt(poolB.estimatedAmountOut)
-                ? -1
-                : poolA.estimatedAmountOut.eq(poolB.estimatedAmountOut)
-                    ? 0
-                    : 1);
-            if (estimatedAmountOutPerPoolSorted.length === 0) {
-                throw new Error('CurveTrade: zero pools returned an quote');
-            }
-            // Select the best (first) pool
-            // among the sorted pools
-            const { pool, estimatedAmountOut, poolContract } = estimatedAmountOutPerPoolSorted[0];
-            // Try to fetch the fee from the contract the newest
-            // If the call fails, the fee defaults back to 4bps
-            try {
-                const feeFromContract = (yield poolContract.fee());
-                fee = new percent_1.Percent(feeFromContract.toString(), '10000000000');
-            }
-            catch (e) {
-                (0, debug_1.default)(e);
-            }
-            // Map token address to index
-            const tokenInIndex = (0, utils_3.getTokenIndex)(pool, tokenIn.address, chainId);
-            const tokenOutIndex = (0, utils_3.getTokenIndex)(pool, tokenOut.address, chainId);
-            // Construct the unsigned transaction
-            // Default method signature and params
-            // This is the most optimistic
-            let exchangeSignature = Object.keys(poolContract.functions).find((signature) => {
-                return signature.startsWith('exchange(');
-            }) || 'exchange';
-            // If the pool has meta coins
-            // Exit to avoid issues
-            if (pool.isMeta || (pool === null || pool === void 0 ? void 0 : pool.underlyingTokens)) {
-                // Try uint256
-                exchangeSignature = 'exchange_underlying(uint256,uint256,uint256,uint256)';
-                if (!(exchangeSignature in poolContract.functions)) {
-                    exchangeSignature = 'exchange_underlying(int128,int128,uint256,uint256)';
-                    if (!(exchangeSignature in poolContract.functions)) {
-                        // Exit the search
-                        console.error(`CurveTrade: could not find a signature. Target: ${exchangeSignature}`);
-                        return;
-                    }
-                }
-            }
-            // Reduce by 0.1% to cover fees
-            const dyMinimumReceived = estimatedAmountOut.mul(9999).div(10000);
-            const exchangeParams = [
-                tokenInIndex.toString(),
-                tokenOutIndex.toString(),
-                amountInBN.toString(),
-                dyMinimumReceived.toString(),
-            ];
-            // Some pools allow trading ETH
-            // Use the correct method signature for swaps that involve ETH
-            if (pool.allowsTradingETH) {
-                exchangeSignature = 'exchange(uint256,uint256,uint256,uint256,bool)';
-                if (!(exchangeSignature in poolContract.functions) ||
-                    !poolContract.interface.getFunction(exchangeSignature).payable) {
-                    // Exit the search
-                    console.error(`CurveTrade: could not find a signature. Target: ${exchangeSignature}`);
-                    return;
-                }
-                // Native currency ETH parameter: eth_in
-                exchangeParams.push(isNativeAssetIn);
-            }
-            debugCurveGetQuote('Final pool', {
-                address: poolContract.address,
+            debugCurveGetQuote('populating transaction ', {
                 exchangeSignature,
                 exchangeParams,
+                value,
             });
-            const populatedTransaction = yield poolContract.populateTransaction[exchangeSignature](...exchangeParams, {
+            const populatedTransaction = await poolContract.populateTransaction[exchangeSignature](...exchangeParams, {
                 value,
             });
             return {
@@ -417,7 +211,216 @@ class CurveTrade extends trade_1.Trade {
                 exchangeRate,
                 contract: poolContract,
             };
+        }
+        // Check if the two pairs are of different type
+        // When the pair types are different, there is
+        // a potential that Curve Smart Router can handle the trade
+        const isCryptoSwap = tokenIn.type !== tokenOut.type;
+        const factoryPoolsMemoized = (0, memoizee_1.default)(utils_3.fetchCurveFactoryPools);
+        const factoryPools = await factoryPoolsMemoized(chainId);
+        const allPools = curvePools.concat(factoryPools);
+        // Find all pools that the trade can go through from both factory and regular pools
+        let routablePools = await (0, utils_3.getRoutablePools)(allPools, tokenIn, tokenOut, chainId);
+        // On mainnet, use the exchange info to get the best pool
+        const bestPoolAndOutputRes = chainId === constants_2.ChainId.MAINNET
+            ? await (0, contracts_2.getBestCurvePoolAndOutput)({
+                amountIn: amountInBN,
+                tokenInAddress: tokenIn.address,
+                tokenOutAddress: tokenOut.address,
+                chainId,
+            })
+            : undefined;
+        // If a pool is found
+        // Ignore the manual off-chain search
+        if (bestPoolAndOutputRes) {
+            debugCurveGetQuote(`Found best pool from Curve registry`, bestPoolAndOutputRes);
+            const bestPool = routablePools.filter((pool) => pool.address.toLowerCase() === bestPoolAndOutputRes.poolAddress.toLowerCase());
+            if (bestPool.length !== 0)
+                routablePools = bestPool;
+        }
+        debugCurveGetQuote('Routeable pools: ', routablePools);
+        // Start finding a possible pool
+        // First via Curve's internal best pool finder
+        // On Mainnet, try to find a route via Curve's Smart Router
+        if (isCryptoSwap && chainId === constants_2.ChainId.MAINNET) {
+            const exchangeRoutingInfo = await (0, contracts_2.getExchangeRoutingInfo)({
+                amountIn: amountInBN.toString(),
+                chainId: constants_2.ChainId.MAINNET,
+                tokenInAddress: tokenIn.address,
+                tokenOutAddress: tokenOut.address,
+            });
+            // If the swap can be handled by the smart router, use it
+            if (exchangeRoutingInfo) {
+                const params = [
+                    amountInBN.toString(),
+                    exchangeRoutingInfo.routes,
+                    exchangeRoutingInfo.indices,
+                    exchangeRoutingInfo.expectedAmountOut.mul(98).div(100).toString(),
+                ];
+                const curveRouterContract = (0, contracts_2.getRouter)();
+                debugCurveGetQuote(`Found a route via Smart Router at ${curveRouterContract.address}`, params);
+                const populatedTransaction = await curveRouterContract.populateTransaction.exchange(...params, {
+                    value,
+                });
+                // Add 30% gas buffer
+                populatedTransaction.gasLimit = populatedTransaction.gasLimit?.mul(130).div(100);
+                return {
+                    fee,
+                    estimatedAmountOut: new tokenAmount_1.TokenAmount(currencyOut, exchangeRoutingInfo.expectedAmountOut.toBigInt()),
+                    currencyAmountIn,
+                    currencyOut,
+                    maximumSlippage,
+                    populatedTransaction,
+                    to: curveRouterContract.address,
+                    exchangeRateWithoutFee,
+                    exchangeRate,
+                    contract: curveRouterContract,
+                };
+            }
+        }
+        // Continue using pool-by-pool cases
+        // Exit since no pools have been found
+        if (routablePools.length === 0) {
+            console.error('CurveTrade: no pools found for trade pair');
+            return;
+        }
+        // The final step
+        // Compile all the output
+        // Using Multicall contract
+        const quoteFromPoolList = await Promise.all(routablePools.map(async (pool) => {
+            const poolContract = new contracts_1.Contract(pool.address, pool.abi, provider);
+            // Map token address to index
+            const tokenInIndex = (0, utils_3.getTokenIndex)(pool, tokenIn.address);
+            const tokenOutIndex = (0, utils_3.getTokenIndex)(pool, tokenOut.address);
+            // Skip pool that return -1
+            if (tokenInIndex < 0 || tokenOutIndex < 0) {
+                console.error(`Curve: pool does not have one of tokens: ${tokenIn.symbol}, ${tokenOut.symbol}`);
+            }
+            // Get expected output from the pool
+            // Use underylying signature if the pool is a meta pool
+            // A meta pool is a pool composed of an ERC20 pair with the Curve base 3Pool (DAI+USDC+USDT)
+            const dyMethodSignature = pool.isMeta ? 'get_dy_underlying' : 'get_dy';
+            // Construct the params
+            const dyMethodParams = [tokenInIndex.toString(), tokenOutIndex.toString(), currencyAmountIn.raw.toString()];
+            debugCurveGetQuote(`Fetching estimated output from ${pool.address}`, {
+                dyMethodSignature,
+                dyMethodParams,
+            });
+            try {
+                const estimatedAmountOut = (await poolContract[dyMethodSignature](...dyMethodParams));
+                // Return the call bytes
+                return {
+                    pool,
+                    estimatedAmountOut,
+                    poolContract,
+                };
+            }
+            catch (error) {
+                console.error(`CurveTrade error: failed to fetch estimated out from `, {
+                    address: pool.address,
+                    dyMethodSignature,
+                    dyMethodParams,
+                    error,
+                });
+                return {
+                    pool,
+                    estimatedAmountOut: bignumber_1.BigNumber.from(0),
+                    poolContract,
+                    error,
+                };
+            }
+        }));
+        // Sort the pool by best output
+        const estimatedAmountOutPerPoolSorted = quoteFromPoolList
+            .filter((pool) => {
+            return pool.estimatedAmountOut.gt(0) && pool.error == undefined;
+        })
+            .sort((poolA, poolB) => poolA.estimatedAmountOut.gt(poolB.estimatedAmountOut)
+            ? -1
+            : poolA.estimatedAmountOut.eq(poolB.estimatedAmountOut)
+                ? 0
+                : 1);
+        if (estimatedAmountOutPerPoolSorted.length === 0) {
+            throw new Error('CurveTrade: zero pools returned an quote');
+        }
+        // Select the best (first) pool
+        // among the sorted pools
+        const { pool, estimatedAmountOut, poolContract } = estimatedAmountOutPerPoolSorted[0];
+        // Try to fetch the fee from the contract the newest
+        // If the call fails, the fee defaults back to 4bps
+        try {
+            const feeFromContract = (await poolContract.fee());
+            fee = new percent_1.Percent(feeFromContract.toString(), '10000000000');
+        }
+        catch (e) {
+            (0, debug_1.default)(e);
+        }
+        // Map token address to index
+        const tokenInIndex = (0, utils_3.getTokenIndex)(pool, tokenIn.address, chainId);
+        const tokenOutIndex = (0, utils_3.getTokenIndex)(pool, tokenOut.address, chainId);
+        // Construct the unsigned transaction
+        // Default method signature and params
+        // This is the most optimistic
+        let exchangeSignature = Object.keys(poolContract.functions).find((signature) => {
+            return signature.startsWith('exchange(');
+        }) || 'exchange';
+        // If the pool has meta coins
+        // Exit to avoid issues
+        if (pool.isMeta || pool?.underlyingTokens) {
+            // Try uint256
+            exchangeSignature = 'exchange_underlying(uint256,uint256,uint256,uint256)';
+            if (!(exchangeSignature in poolContract.functions)) {
+                exchangeSignature = 'exchange_underlying(int128,int128,uint256,uint256)';
+                if (!(exchangeSignature in poolContract.functions)) {
+                    // Exit the search
+                    console.error(`CurveTrade: could not find a signature. Target: ${exchangeSignature}`);
+                    return;
+                }
+            }
+        }
+        // Reduce by 0.1% to cover fees
+        const dyMinimumReceived = estimatedAmountOut.mul(9999).div(10000);
+        const exchangeParams = [
+            tokenInIndex.toString(),
+            tokenOutIndex.toString(),
+            amountInBN.toString(),
+            dyMinimumReceived.toString(),
+        ];
+        // Some pools allow trading ETH
+        // Use the correct method signature for swaps that involve ETH
+        if (pool.allowsTradingETH) {
+            exchangeSignature = 'exchange(uint256,uint256,uint256,uint256,bool)';
+            if (!(exchangeSignature in poolContract.functions) ||
+                !poolContract.interface.getFunction(exchangeSignature).payable) {
+                // Exit the search
+                console.error(`CurveTrade: could not find a signature. Target: ${exchangeSignature}`);
+                return;
+            }
+            // Native currency ETH parameter: eth_in
+            exchangeParams.push(isNativeAssetIn);
+        }
+        debugCurveGetQuote('Final pool', {
+            address: poolContract.address,
+            exchangeSignature,
+            exchangeParams,
         });
+        const populatedTransaction = await poolContract.populateTransaction[exchangeSignature](...exchangeParams, {
+            value,
+        });
+        return {
+            currencyAmountIn,
+            populatedTransaction,
+            currencyOut,
+            estimatedAmountOut: currency_1.Currency.isNative(currencyOut)
+                ? currencyAmount_1.CurrencyAmount.nativeCurrency(estimatedAmountOut.toBigInt(), chainId)
+                : new tokenAmount_1.TokenAmount(wrappedtokenOut, estimatedAmountOut.toBigInt()),
+            maximumSlippage,
+            fee,
+            to: poolContract.address,
+            exchangeRateWithoutFee,
+            exchangeRate,
+            contract: poolContract,
+        };
     }
     /**
      * Computes and returns the best trade from Curve pools
@@ -429,40 +432,38 @@ class CurveTrade extends trade_1.Trade {
      * @param {Provider} provider an optional provider, the router defaults public providers
      * @returns the best trade if found
      */
-    static bestTradeExactIn({ currencyAmountIn, currencyOut, maximumSlippage, receiver }, provider) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            // Try to extract the chain ID from the tokens
-            const chainId = (0, utils_1.tryGetChainId)(currencyAmountIn, currencyOut);
-            // Require the chain ID
-            (0, tiny_invariant_1.default)(chainId !== undefined && routable_platform_1.RoutablePlatform.CURVE.supportsChain(chainId), 'CHAIN_ID');
-            try {
-                const quote = yield CurveTrade.getQuote({
-                    currencyAmountIn,
-                    currencyOut,
+    static async bestTradeExactIn({ currencyAmountIn, currencyOut, maximumSlippage, receiver }, provider) {
+        // Try to extract the chain ID from the tokens
+        const chainId = (0, utils_1.tryGetChainId)(currencyAmountIn, currencyOut);
+        // Require the chain ID
+        (0, tiny_invariant_1.default)(chainId !== undefined && routable_platform_1.RoutablePlatform.CURVE.supportsChain(chainId), 'CHAIN_ID');
+        try {
+            const quote = await CurveTrade.getQuote({
+                currencyAmountIn,
+                currencyOut,
+                maximumSlippage,
+                receiver,
+            }, provider);
+            if (quote) {
+                const { currencyAmountIn, estimatedAmountOut, fee, maximumSlippage, populatedTransaction, to, contract } = quote;
+                // Return the CurveTrade
+                return new CurveTrade({
+                    fee,
                     maximumSlippage,
-                    receiver,
-                }, provider);
-                if (quote) {
-                    const { currencyAmountIn, estimatedAmountOut, fee, maximumSlippage, populatedTransaction, to, contract } = quote;
-                    // Return the CurveTrade
-                    return new CurveTrade({
-                        fee,
-                        maximumSlippage,
-                        tradeType: constants_2.TradeType.EXACT_INPUT,
-                        chainId,
-                        transactionRequest: populatedTransaction,
-                        inputAmount: currencyAmountIn,
-                        outputAmount: estimatedAmountOut,
-                        approveAddress: to,
-                        contract,
-                    });
-                }
+                    tradeType: constants_2.TradeType.EXACT_INPUT,
+                    chainId,
+                    transactionRequest: populatedTransaction,
+                    inputAmount: currencyAmountIn,
+                    outputAmount: estimatedAmountOut,
+                    approveAddress: to,
+                    contract,
+                });
             }
-            catch (error) {
-                console.error('could not fetch Curve trade', error);
-            }
-            return;
-        });
+        }
+        catch (error) {
+            console.error('could not fetch Curve trade', error);
+        }
+        return;
     }
     /**
      * Computes and returns the best trade from Curve pools using output as target.
@@ -474,64 +475,64 @@ class CurveTrade extends trade_1.Trade {
      * @param {Provider} provider an optional provider, the router defaults public providers
      * @returns the best trade if found
      */
-    static bestTradeExactOut({ currencyAmountOut, currencyIn, maximumSlippage, receiver }, provider) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            // Try to extract the chain ID from the tokens
-            const chainId = (0, utils_1.tryGetChainId)(currencyAmountOut, currencyIn);
-            // Require the chain ID
-            (0, tiny_invariant_1.default)(chainId !== undefined && routable_platform_1.RoutablePlatform.CURVE.supportsChain(chainId), 'CHAIN_ID');
-            try {
-                // Get quote for original amounts in
-                const baseQuote = (yield CurveTrade.getQuote({
-                    currencyAmountIn: currencyAmountOut,
-                    currencyOut: currencyIn,
+    static async bestTradeExactOut({ currencyAmountOut, currencyIn, maximumSlippage, receiver }, provider) {
+        // Try to extract the chain ID from the tokens
+        const chainId = (0, utils_1.tryGetChainId)(currencyAmountOut, currencyIn);
+        // Require the chain ID
+        (0, tiny_invariant_1.default)(chainId !== undefined && routable_platform_1.RoutablePlatform.CURVE.supportsChain(chainId), 'CHAIN_ID');
+        try {
+            // Get quote for original amounts in
+            const baseQuote = (await CurveTrade.getQuote({
+                currencyAmountIn: currencyAmountOut,
+                currencyOut: currencyIn,
+                maximumSlippage,
+                receiver,
+            }, provider));
+            const currencyOut = currencyAmountOut.currency;
+            const rawInputToOutputExchangeRate = new decimal_js_light_1.default(baseQuote.exchangeRate).pow(-currencyOut.decimals);
+            const outputToInputExchangeRate = new decimal_js_light_1.default(rawInputToOutputExchangeRate).pow(-1);
+            const amountOut = new decimal_js_light_1.default(currencyAmountOut.toFixed(currencyOut.decimals));
+            const estimatedAmountIn = amountOut.times(outputToInputExchangeRate).dividedBy('0.9996');
+            const currencyAmountIn = new tokenAmount_1.TokenAmount(currencyIn, (0, units_1.parseUnits)(estimatedAmountIn.toFixed(currencyIn.decimals), currencyIn.decimals).toString());
+            const quote = await CurveTrade.getQuote({
+                currencyAmountIn,
+                currencyOut,
+                maximumSlippage,
+                receiver,
+            }, provider);
+            if (quote) {
+                const { currencyAmountIn, estimatedAmountOut, fee, maximumSlippage, populatedTransaction, to, contract } = quote;
+                // Return the CurveTrade
+                return new CurveTrade({
+                    fee,
                     maximumSlippage,
-                    receiver,
-                }, provider));
-                const currencyOut = currencyAmountOut.currency;
-                const rawInputToOutputExchangeRate = new decimal_js_light_1.default(baseQuote.exchangeRate).pow(-currencyOut.decimals);
-                const outputToInputExchangeRate = new decimal_js_light_1.default(rawInputToOutputExchangeRate).pow(-1);
-                const amountOut = new decimal_js_light_1.default(currencyAmountOut.toFixed(currencyOut.decimals));
-                const estimatedAmountIn = amountOut.times(outputToInputExchangeRate).dividedBy('0.9996');
-                const currencyAmountIn = new tokenAmount_1.TokenAmount(currencyIn, (0, units_1.parseUnits)(estimatedAmountIn.toFixed(currencyIn.decimals), currencyIn.decimals).toString());
-                const quote = yield CurveTrade.getQuote({
-                    currencyAmountIn,
-                    currencyOut,
-                    maximumSlippage,
-                    receiver,
-                }, provider);
-                if (quote) {
-                    const { currencyAmountIn, estimatedAmountOut, fee, maximumSlippage, populatedTransaction, to, contract } = quote;
-                    // Return the CurveTrade
-                    return new CurveTrade({
-                        fee,
-                        maximumSlippage,
-                        tradeType: constants_2.TradeType.EXACT_OUTPUT,
-                        chainId,
-                        transactionRequest: populatedTransaction,
-                        inputAmount: currencyAmountIn,
-                        outputAmount: estimatedAmountOut,
-                        approveAddress: to,
-                        contract,
-                    });
-                }
+                    tradeType: constants_2.TradeType.EXACT_OUTPUT,
+                    chainId,
+                    transactionRequest: populatedTransaction,
+                    inputAmount: currencyAmountIn,
+                    outputAmount: estimatedAmountOut,
+                    approveAddress: to,
+                    contract,
+                });
             }
-            catch (error) {
-                console.error('could not fetch Curve trade', error);
-            }
-            return;
-        });
+        }
+        catch (error) {
+            console.error('could not fetch Curve trade', error);
+        }
+        return;
     }
     /**
      * Returns unsigned transaction for the trade
      * @param options options
      * @returns the unsigned transaction
      */
-    swapTransaction(options) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            debugCurve({ options });
-            return Object.assign(Object.assign({}, this.transactionRequest), { gasLimit: this.transactionRequest.gasLimit ? bignumber_1.BigNumber.from(this.transactionRequest.gasLimit) : undefined, value: this.transactionRequest.value ? this.transactionRequest.value : bignumber_1.BigNumber.from(0) });
-        });
+    async swapTransaction(options) {
+        debugCurve({ options });
+        return {
+            ...this.transactionRequest,
+            gasLimit: this.transactionRequest.gasLimit ? bignumber_1.BigNumber.from(this.transactionRequest.gasLimit) : undefined,
+            value: this.transactionRequest.value ? this.transactionRequest.value : bignumber_1.BigNumber.from(0),
+        };
     }
 }
 exports.CurveTrade = CurveTrade;

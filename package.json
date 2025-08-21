@@ -44,7 +44,7 @@
     "@ethersproject/units": "^5.4.0",
     "@swapr/core": "^0.3.20",
     "@swapr/periphery": "^0.3.23",
-    "@uniswap/smart-order-router": "^2.9.3",
+    "@uniswap/smart-order-router": "https://github.com/xyzseer/smart-order-router#caa837b99beb8921601c2e4b53c56d28d0b2ba92",
     "big.js": "^5.2.2",
     "dayjs": "^1.11.0",
     "debug": "^4.3.4",
@@ -74,7 +74,7 @@
     "@types/node-fetch": "^2.6.1",
     "@typescript-eslint/eslint-plugin": "^5.31.0",
     "@typescript-eslint/parser": "^5.30.5",
-    "@uniswap/sdk-core": "^3.0.1",
+    "@uniswap/sdk-core": "4.2.1",
     "@uniswap/v3-sdk": "^3.8.3",
     "babel-plugin-transform-jsbi-to-bigint": "^1.4.0",
     "eslint": "^8.19.0",
@@ -104,6 +104,7 @@
     "singleQuote": true
   },
   "resolutions": {
-    "@ethersproject/providers": "^5.4.0"
+    "@ethersproject/providers": "^5.4.0",
+    "@uniswap/v4-sdk/ethers": "^5.4.0"
   }
 }

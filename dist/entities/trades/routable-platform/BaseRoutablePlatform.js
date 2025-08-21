@@ -7,6 +7,14 @@ exports.BaseRoutablePlatform = void 0;
  */
 class BaseRoutablePlatform {
     /**
+     * @returns List of chainIds supported by the platform
+     */
+    chainIds;
+    /**
+     * @property The name of the platform.
+     */
+    name;
+    /**
      * Create a new instance of the platform.
      * @param chainIds list of chainIds to check
      * @param name name of the platform

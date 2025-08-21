@@ -6,6 +6,7 @@ const jsbi_1 = tslib_1.__importDefault(require("jsbi"));
 const tiny_invariant_1 = tslib_1.__importDefault(require("tiny-invariant"));
 const currencyAmount_1 = require("./currencyAmount");
 class TokenAmount extends currencyAmount_1.CurrencyAmount {
+    token;
     // amount _must_ be raw, i.e. in the native representation
     constructor(token, amount) {
         super(token, amount);

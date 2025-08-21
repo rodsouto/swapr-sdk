@@ -17,6 +17,13 @@ const NO_TICK_DATA_PROVIDER_DEFAULT = new v3_sdk_1.NoTickDataProvider();
  * Represents a V3 pool
  */
 class Pool {
+    token0;
+    token1;
+    fee;
+    sqrtRatioX96;
+    liquidity;
+    tickCurrent;
+    tickDataProvider;
     /**
      * Construct a pool
      * @param tokenA One of the tokens in the pool
@@ -40,19 +47,21 @@ class Pool {
         this.tickCurrent = tickCurrent;
         this.tickDataProvider = Array.isArray(ticks) ? new v3_sdk_1.TickListDataProvider(ticks, 60) : ticks;
     }
+    _token0Price;
     /**
      * Returns the current mid price of the pool in terms of token0, i.e. the ratio of token1 over token0
      */
     get token0Price() {
-        var _a;
-        return ((_a = this._token0Price) !== null && _a !== void 0 ? _a : (this._token0Price = new sdk_core_1.Price(this.token0, this.token1, Q192, jsbi_1.default.multiply(this.sqrtRatioX96, this.sqrtRatioX96))));
+        return (this._token0Price ??
+            (this._token0Price = new sdk_core_1.Price(this.token0, this.token1, Q192, jsbi_1.default.multiply(this.sqrtRatioX96, this.sqrtRatioX96))));
     }
+    _token1Price;
     /**
      * Returns the current mid price of the pool in terms of token1, i.e. the ratio of token0 over token1
      */
     get token1Price() {
-        var _a;
-        return ((_a = this._token1Price) !== null && _a !== void 0 ? _a : (this._token1Price = new sdk_core_1.Price(this.token1, this.token0, jsbi_1.default.multiply(this.sqrtRatioX96, this.sqrtRatioX96), Q192)));
+        return (this._token1Price ??
+            (this._token1Price = new sdk_core_1.Price(this.token1, this.token0, jsbi_1.default.multiply(this.sqrtRatioX96, this.sqrtRatioX96), Q192)));
     }
     /**
      * Returns the chain ID of the tokens in the pool.
@@ -95,17 +104,15 @@ class Pool {
      * @param sqrtPriceLimitX96 The Q64.96 sqrt price limit
      * @returns The output amount and the pool with updated state
      */
-    getOutputAmount(inputAmount, sqrtPriceLimitX96) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            (0, tiny_invariant_1.default)(this.involvesToken(inputAmount.currency), 'TOKEN');
-            const zeroForOne = inputAmount.currency.equals(this.token0);
-            const { amountCalculated: outputAmount, sqrtRatioX96, liquidity, tickCurrent, } = yield this.swap(zeroForOne, inputAmount.quotient, sqrtPriceLimitX96);
-            const outputToken = zeroForOne ? this.token1 : this.token0;
-            return [
-                sdk_core_1.CurrencyAmount.fromRawAmount(outputToken, jsbi_1.default.multiply(outputAmount, jsbi_1.default.BigInt(-1))),
-                new Pool(this.token0, this.token1, this.fee, sqrtRatioX96, liquidity, tickCurrent, this.tickDataProvider),
-            ];
-        });
+    async getOutputAmount(inputAmount, sqrtPriceLimitX96) {
+        (0, tiny_invariant_1.default)(this.involvesToken(inputAmount.currency), 'TOKEN');
+        const zeroForOne = inputAmount.currency.equals(this.token0);
+        const { amountCalculated: outputAmount, sqrtRatioX96, liquidity, tickCurrent, } = await this.swap(zeroForOne, inputAmount.quotient, sqrtPriceLimitX96);
+        const outputToken = zeroForOne ? this.token1 : this.token0;
+        return [
+            sdk_core_1.CurrencyAmount.fromRawAmount(outputToken, jsbi_1.default.multiply(outputAmount, jsbi_1.default.BigInt(-1))),
+            new Pool(this.token0, this.token1, this.fee, sqrtRatioX96, liquidity, tickCurrent, this.tickDataProvider),
+        ];
     }
     /**
      * Given a desired output amount of a token, return the computed input amount and a pool with state updated after the trade
@@ -113,17 +120,15 @@ class Pool {
      * @param sqrtPriceLimitX96 The Q64.96 sqrt price limit. If zero for one, the price cannot be less than this value after the swap. If one for zero, the price cannot be greater than this value after the swap
      * @returns The input amount and the pool with updated state
      */
-    getInputAmount(outputAmount, sqrtPriceLimitX96) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            (0, tiny_invariant_1.default)(outputAmount.currency.isToken && this.involvesToken(outputAmount.currency), 'TOKEN');
-            const zeroForOne = outputAmount.currency.equals(this.token1);
-            const { amountCalculated: inputAmount, sqrtRatioX96, liquidity, tickCurrent, } = yield this.swap(zeroForOne, jsbi_1.default.multiply(outputAmount.quotient, jsbi_1.default.BigInt(-1)), sqrtPriceLimitX96);
-            const inputToken = zeroForOne ? this.token0 : this.token1;
-            return [
-                sdk_core_1.CurrencyAmount.fromRawAmount(inputToken, inputAmount),
-                new Pool(this.token0, this.token1, this.fee, sqrtRatioX96, liquidity, tickCurrent, this.tickDataProvider),
-            ];
-        });
+    async getInputAmount(outputAmount, sqrtPriceLimitX96) {
+        (0, tiny_invariant_1.default)(outputAmount.currency.isToken && this.involvesToken(outputAmount.currency), 'TOKEN');
+        const zeroForOne = outputAmount.currency.equals(this.token1);
+        const { amountCalculated: inputAmount, sqrtRatioX96, liquidity, tickCurrent, } = await this.swap(zeroForOne, jsbi_1.default.multiply(outputAmount.quotient, jsbi_1.default.BigInt(-1)), sqrtPriceLimitX96);
+        const inputToken = zeroForOne ? this.token0 : this.token1;
+        return [
+            sdk_core_1.CurrencyAmount.fromRawAmount(inputToken, inputAmount),
+            new Pool(this.token0, this.token1, this.fee, sqrtRatioX96, liquidity, tickCurrent, this.tickDataProvider),
+        ];
     }
     /**
      * Executes a swap
@@ -135,79 +140,77 @@ class Pool {
      * @returns liquidity
      * @returns tickCurrent
      */
-    swap(zeroForOne, amountSpecified, sqrtPriceLimitX96) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            if (!sqrtPriceLimitX96)
-                sqrtPriceLimitX96 = zeroForOne
-                    ? jsbi_1.default.add(v3_sdk_1.TickMath.MIN_SQRT_RATIO, jsbi_1.default.BigInt(1))
-                    : jsbi_1.default.subtract(v3_sdk_1.TickMath.MAX_SQRT_RATIO, jsbi_1.default.BigInt(1));
-            if (zeroForOne) {
-                (0, tiny_invariant_1.default)(jsbi_1.default.greaterThan(sqrtPriceLimitX96, v3_sdk_1.TickMath.MIN_SQRT_RATIO), 'RATIO_MIN');
-                (0, tiny_invariant_1.default)(jsbi_1.default.lessThan(sqrtPriceLimitX96, this.sqrtRatioX96), 'RATIO_CURRENT');
+    async swap(zeroForOne, amountSpecified, sqrtPriceLimitX96) {
+        if (!sqrtPriceLimitX96)
+            sqrtPriceLimitX96 = zeroForOne
+                ? jsbi_1.default.add(v3_sdk_1.TickMath.MIN_SQRT_RATIO, jsbi_1.default.BigInt(1))
+                : jsbi_1.default.subtract(v3_sdk_1.TickMath.MAX_SQRT_RATIO, jsbi_1.default.BigInt(1));
+        if (zeroForOne) {
+            (0, tiny_invariant_1.default)(jsbi_1.default.greaterThan(sqrtPriceLimitX96, v3_sdk_1.TickMath.MIN_SQRT_RATIO), 'RATIO_MIN');
+            (0, tiny_invariant_1.default)(jsbi_1.default.lessThan(sqrtPriceLimitX96, this.sqrtRatioX96), 'RATIO_CURRENT');
+        }
+        else {
+            (0, tiny_invariant_1.default)(jsbi_1.default.lessThan(sqrtPriceLimitX96, v3_sdk_1.TickMath.MAX_SQRT_RATIO), 'RATIO_MAX');
+            (0, tiny_invariant_1.default)(jsbi_1.default.greaterThan(sqrtPriceLimitX96, this.sqrtRatioX96), 'RATIO_CURRENT');
+        }
+        const exactInput = jsbi_1.default.greaterThanOrEqual(amountSpecified, jsbi_1.default.BigInt(0));
+        // keep track of swap state
+        const state = {
+            amountSpecifiedRemaining: amountSpecified,
+            amountCalculated: jsbi_1.default.BigInt(0),
+            sqrtPriceX96: this.sqrtRatioX96,
+            tick: this.tickCurrent,
+            liquidity: this.liquidity,
+        };
+        // start swap while loop
+        while (jsbi_1.default.notEqual(state.amountSpecifiedRemaining, jsbi_1.default.BigInt(0)) && state.sqrtPriceX96 != sqrtPriceLimitX96) {
+            const step = {};
+            step.sqrtPriceStartX96 = state.sqrtPriceX96;
+            [step.tickNext, step.initialized] = await this.tickDataProvider.nextInitializedTickWithinOneWord(state.tick, zeroForOne, this.tickSpacing);
+            if (step.tickNext < v3_sdk_1.TickMath.MIN_TICK) {
+                step.tickNext = v3_sdk_1.TickMath.MIN_TICK;
+            }
+            else if (step.tickNext > v3_sdk_1.TickMath.MAX_TICK) {
+                step.tickNext = v3_sdk_1.TickMath.MAX_TICK;
+            }
+            step.sqrtPriceNextX96 = v3_sdk_1.TickMath.getSqrtRatioAtTick(step.tickNext);
+            [state.sqrtPriceX96, step.amountIn, step.amountOut, step.feeAmount] = v3_sdk_1.SwapMath.computeSwapStep(state.sqrtPriceX96, (zeroForOne
+                ? jsbi_1.default.lessThan(step.sqrtPriceNextX96, sqrtPriceLimitX96)
+                : jsbi_1.default.greaterThan(step.sqrtPriceNextX96, sqrtPriceLimitX96))
+                ? sqrtPriceLimitX96
+                : step.sqrtPriceNextX96, state.liquidity, state.amountSpecifiedRemaining, this.fee);
+            if (exactInput) {
+                state.amountSpecifiedRemaining = jsbi_1.default.subtract(state.amountSpecifiedRemaining, jsbi_1.default.add(step.amountIn, step.feeAmount));
+                state.amountCalculated = jsbi_1.default.subtract(state.amountCalculated, step.amountOut);
             }
             else {
-                (0, tiny_invariant_1.default)(jsbi_1.default.lessThan(sqrtPriceLimitX96, v3_sdk_1.TickMath.MAX_SQRT_RATIO), 'RATIO_MAX');
-                (0, tiny_invariant_1.default)(jsbi_1.default.greaterThan(sqrtPriceLimitX96, this.sqrtRatioX96), 'RATIO_CURRENT');
+                state.amountSpecifiedRemaining = jsbi_1.default.add(state.amountSpecifiedRemaining, step.amountOut);
+                state.amountCalculated = jsbi_1.default.add(state.amountCalculated, jsbi_1.default.add(step.amountIn, step.feeAmount));
             }
-            const exactInput = jsbi_1.default.greaterThanOrEqual(amountSpecified, jsbi_1.default.BigInt(0));
-            // keep track of swap state
-            const state = {
-                amountSpecifiedRemaining: amountSpecified,
-                amountCalculated: jsbi_1.default.BigInt(0),
-                sqrtPriceX96: this.sqrtRatioX96,
-                tick: this.tickCurrent,
-                liquidity: this.liquidity,
-            };
-            // start swap while loop
-            while (jsbi_1.default.notEqual(state.amountSpecifiedRemaining, jsbi_1.default.BigInt(0)) && state.sqrtPriceX96 != sqrtPriceLimitX96) {
-                const step = {};
-                step.sqrtPriceStartX96 = state.sqrtPriceX96;
-                [step.tickNext, step.initialized] = yield this.tickDataProvider.nextInitializedTickWithinOneWord(state.tick, zeroForOne, this.tickSpacing);
-                if (step.tickNext < v3_sdk_1.TickMath.MIN_TICK) {
-                    step.tickNext = v3_sdk_1.TickMath.MIN_TICK;
+            // TODO
+            if (jsbi_1.default.equal(state.sqrtPriceX96, step.sqrtPriceNextX96)) {
+                // if the tick is initialized, run the tick transition
+                if (step.initialized) {
+                    let liquidityNet = jsbi_1.default.BigInt((await this.tickDataProvider.getTick(step.tickNext)).liquidityNet);
+                    // if we're moving leftward, we interpret liquidityNet as the opposite sign
+                    // safe because liquidityNet cannot be type(int128).min
+                    if (zeroForOne)
+                        liquidityNet = jsbi_1.default.multiply(liquidityNet, jsbi_1.default.BigInt(-1));
+                    state.liquidity = v3_sdk_1.LiquidityMath.addDelta(state.liquidity, liquidityNet);
                 }
-                else if (step.tickNext > v3_sdk_1.TickMath.MAX_TICK) {
-                    step.tickNext = v3_sdk_1.TickMath.MAX_TICK;
-                }
-                step.sqrtPriceNextX96 = v3_sdk_1.TickMath.getSqrtRatioAtTick(step.tickNext);
-                [state.sqrtPriceX96, step.amountIn, step.amountOut, step.feeAmount] = v3_sdk_1.SwapMath.computeSwapStep(state.sqrtPriceX96, (zeroForOne
-                    ? jsbi_1.default.lessThan(step.sqrtPriceNextX96, sqrtPriceLimitX96)
-                    : jsbi_1.default.greaterThan(step.sqrtPriceNextX96, sqrtPriceLimitX96))
-                    ? sqrtPriceLimitX96
-                    : step.sqrtPriceNextX96, state.liquidity, state.amountSpecifiedRemaining, this.fee);
-                if (exactInput) {
-                    state.amountSpecifiedRemaining = jsbi_1.default.subtract(state.amountSpecifiedRemaining, jsbi_1.default.add(step.amountIn, step.feeAmount));
-                    state.amountCalculated = jsbi_1.default.subtract(state.amountCalculated, step.amountOut);
-                }
-                else {
-                    state.amountSpecifiedRemaining = jsbi_1.default.add(state.amountSpecifiedRemaining, step.amountOut);
-                    state.amountCalculated = jsbi_1.default.add(state.amountCalculated, jsbi_1.default.add(step.amountIn, step.feeAmount));
-                }
-                // TODO
-                if (jsbi_1.default.equal(state.sqrtPriceX96, step.sqrtPriceNextX96)) {
-                    // if the tick is initialized, run the tick transition
-                    if (step.initialized) {
-                        let liquidityNet = jsbi_1.default.BigInt((yield this.tickDataProvider.getTick(step.tickNext)).liquidityNet);
-                        // if we're moving leftward, we interpret liquidityNet as the opposite sign
-                        // safe because liquidityNet cannot be type(int128).min
-                        if (zeroForOne)
-                            liquidityNet = jsbi_1.default.multiply(liquidityNet, jsbi_1.default.BigInt(-1));
-                        state.liquidity = v3_sdk_1.LiquidityMath.addDelta(state.liquidity, liquidityNet);
-                    }
-                    state.tick = zeroForOne ? step.tickNext - 1 : step.tickNext;
-                }
-                else if (state.sqrtPriceX96 != step.sqrtPriceStartX96) {
-                    // recompute unless we're on a lower tick boundary (i.e. already transitioned ticks), and haven't moved
-                    state.tick = v3_sdk_1.TickMath.getTickAtSqrtRatio(state.sqrtPriceX96);
-                }
+                state.tick = zeroForOne ? step.tickNext - 1 : step.tickNext;
             }
-            return {
-                amountCalculated: state.amountCalculated,
-                sqrtRatioX96: state.sqrtPriceX96,
-                liquidity: state.liquidity,
-                tickCurrent: state.tick,
-            };
-        });
+            else if (state.sqrtPriceX96 != step.sqrtPriceStartX96) {
+                // recompute unless we're on a lower tick boundary (i.e. already transitioned ticks), and haven't moved
+                state.tick = v3_sdk_1.TickMath.getTickAtSqrtRatio(state.sqrtPriceX96);
+            }
+        }
+        return {
+            amountCalculated: state.amountCalculated,
+            sqrtRatioX96: state.sqrtPriceX96,
+            liquidity: state.liquidity,
+            tickCurrent: state.tick,
+        };
     }
 }
 exports.Pool = Pool;

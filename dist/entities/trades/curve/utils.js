@@ -14,7 +14,6 @@ const tokens_1 = require("./tokens");
  * @param tokenAddress the token address
  */
 function getTokenIndex(pool, tokenAddress, chainId = constants_1.ChainId.MAINNET) {
-    var _a;
     // Combine all tokens without lpTokens
     const tokensWithoutLpToken = pool.tokens.filter((token) => token.isLPToken);
     // Use main tokens
@@ -29,10 +28,10 @@ function getTokenIndex(pool, tokenAddress, chainId = constants_1.ChainId.MAINNET
         tokenList = [...tokensWithoutLpToken, ...pool.metaTokens];
     }
     // Search for WETH in the pool
-    const poolHasWETH = tokenList.find(({ address }) => { var _a, _b, _c; return ((_c = (_b = (_a = tokens_1.CURVE_TOKENS[chainId]) === null || _a === void 0 ? void 0 : _a.weth) === null || _b === void 0 ? void 0 : _b.address) === null || _c === void 0 ? void 0 : _c.toLowerCase()) === address.toLowerCase(); });
+    const poolHasWETH = tokenList.find(({ address }) => tokens_1.CURVE_TOKENS[chainId]?.weth?.address?.toLowerCase() === address.toLowerCase());
     let tokenIndex;
     // Case where both pool tokens and underlying tokens can be routed through
-    if (underlyingTokens && ((_a = pool.underlyingTokens) === null || _a === void 0 ? void 0 : _a.length) === pool.tokens.length) {
+    if (underlyingTokens && pool.underlyingTokens?.length === pool.tokens.length) {
         tokenIndex = pool.tokens.findIndex((item, index) => item.address.toLowerCase() == tokenAddress.toLowerCase() ||
             underlyingTokens[index].address.toLowerCase() == tokenAddress.toLowerCase());
     }
@@ -55,63 +54,60 @@ exports.getTokenIndex = getTokenIndex;
  */
 function getCurveToken(token, chainId = constants_1.ChainId.MAINNET) {
     const tokenList = tokens_1.CURVE_TOKENS[chainId];
-    return (Object.values(tokenList).find(({ address }) => { var _a; return address.toLowerCase() === ((_a = token.address) === null || _a === void 0 ? void 0 : _a.toLowerCase()); }) ||
-        Object.assign(Object.assign({}, token), { type: 'other' }));
+    return (Object.values(tokenList).find(({ address }) => address.toLowerCase() === token.address?.toLowerCase()) ||
+        { ...token, type: 'other' });
 }
 exports.getCurveToken = getCurveToken;
 /**
  * Fetches user created factory pools for curve protocol
  */
-function fetchCurveFactoryPools(chainId) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
-        if (pools_1.CURVE_FACTORY_SUPPORTED_APIS[chainId] === '')
-            return [];
-        const response = yield (0, node_fetch_1.default)(`https://api.curve.fi/api/getPools/${pools_1.CURVE_FACTORY_SUPPORTED_APIS[chainId]}/factory`);
-        if (!response.ok)
-            throw new Error('response not ok');
-        const allPoolsArray = (yield response.json());
-        //filter for low liquidty pool
-        const filteredLowLiquidityPools = allPoolsArray.data.poolData.filter((item) => item.usdTotal > 100000);
-        //restructures pools so they fit into curvePool type
-        const pooList = filteredLowLiquidityPools.map(({ symbol, name, coins, address, implementation, isMetaPool }) => {
-            var _a, _b;
-            const tokens = coins.map((token) => {
-                let currentToken = new token_1.Token(chainId, token.address, parseInt(token.decimals), token.symbol, token.name);
-                //wraps token if its Native so that it can be matched
-                if (token.address === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE')
-                    currentToken = token_1.Token.getNativeWrapper(chainId);
-                const symbol = currentToken.symbol ? currentToken.symbol : token.symbol;
-                return {
-                    symbol,
-                    name: symbol,
-                    address: currentToken.address,
-                    decimals: currentToken.decimals,
-                    type: determineTokeType(symbol),
-                    isLPToken: token.isBasePoolLpToken,
-                };
-            });
-            const isMeta = isMetaPool || implementation.includes('meta');
-            const curvePoolObject = {
-                id: symbol,
-                name,
-                address,
-                abi: abi_1.CURVE_POOL_ABI_MAP[implementation],
-                isMeta,
-                tokens,
+async function fetchCurveFactoryPools(chainId) {
+    if (pools_1.CURVE_FACTORY_SUPPORTED_APIS[chainId] === '')
+        return [];
+    const response = await (0, node_fetch_1.default)(`https://api.curve.fi/api/getPools/${pools_1.CURVE_FACTORY_SUPPORTED_APIS[chainId]}/factory`);
+    if (!response.ok)
+        throw new Error('response not ok');
+    const allPoolsArray = (await response.json());
+    //filter for low liquidty pool
+    const filteredLowLiquidityPools = allPoolsArray.data.poolData.filter((item) => item.usdTotal > 100000);
+    //restructures pools so they fit into curvePool type
+    const pooList = filteredLowLiquidityPools.map(({ symbol, name, coins, address, implementation, isMetaPool }) => {
+        const tokens = coins.map((token) => {
+            let currentToken = new token_1.Token(chainId, token.address, parseInt(token.decimals), token.symbol, token.name);
+            //wraps token if its Native so that it can be matched
+            if (token.address === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE')
+                currentToken = token_1.Token.getNativeWrapper(chainId);
+            const symbol = currentToken.symbol ? currentToken.symbol : token.symbol;
+            return {
+                symbol,
+                name: symbol,
+                address: currentToken.address,
+                decimals: currentToken.decimals,
+                type: determineTokeType(symbol),
+                isLPToken: token.isBasePoolLpToken,
             };
-            //tries to find meta pool tokens
-            const findPoolTokens = tokens[1] && ((_b = (_a = tokens_1.CURVE_TOKENS[chainId][tokens[1].symbol.toLocaleLowerCase()]) === null || _a === void 0 ? void 0 : _a.poolTokens) === null || _b === void 0 ? void 0 : _b.call(_a));
-            //if its meta pool puts token under metaTokens else under underlying tokens
-            if (findPoolTokens) {
-                if (isMeta)
-                    curvePoolObject.metaTokens = findPoolTokens;
-                else
-                    curvePoolObject.underlyingTokens = findPoolTokens;
-            }
-            return curvePoolObject;
         });
-        return pooList;
+        const isMeta = isMetaPool || implementation.includes('meta');
+        const curvePoolObject = {
+            id: symbol,
+            name,
+            address,
+            abi: abi_1.CURVE_POOL_ABI_MAP[implementation],
+            isMeta,
+            tokens,
+        };
+        //tries to find meta pool tokens
+        const findPoolTokens = tokens[1] && tokens_1.CURVE_TOKENS[chainId][tokens[1].symbol.toLocaleLowerCase()]?.poolTokens?.();
+        //if its meta pool puts token under metaTokens else under underlying tokens
+        if (findPoolTokens) {
+            if (isMeta)
+                curvePoolObject.metaTokens = findPoolTokens;
+            else
+                curvePoolObject.underlyingTokens = findPoolTokens;
+        }
+        return curvePoolObject;
     });
+    return pooList;
 }
 exports.fetchCurveFactoryPools = fetchCurveFactoryPools;
 /**
@@ -121,30 +117,28 @@ exports.fetchCurveFactoryPools = fetchCurveFactoryPools;
  * @param tokenOutAddress Token out address
  * @returns List of potential pools at which the trade can be done
  */
-function getRoutablePools(pools, tokenIn, tokenOut, chainId) {
-    return tslib_1.__awaiter(this, void 0, void 0, function* () {
-        return pools.filter(({ tokens, metaTokens, underlyingTokens, allowsTradingETH }) => {
-            let tokenInAddress = tokenIn.address;
-            let tokenOutAddress = tokenOut.address;
-            // For mainnet, account for ETH/WETH
-            if (chainId === constants_1.ChainId.MAINNET) {
-                const isTokenInEther = tokenIn.address.toLowerCase() === tokens_1.TOKENS_MAINNET.eth.address.toLowerCase();
-                const isTokenOutEther = tokenOut.address.toLowerCase() === tokens_1.TOKENS_MAINNET.eth.address.toLowerCase();
-                tokenInAddress = allowsTradingETH === true && isTokenInEther ? tokens_1.TOKENS_MAINNET.weth.address : tokenIn.address;
-                tokenOutAddress = allowsTradingETH === true && isTokenOutEther ? tokens_1.TOKENS_MAINNET.weth.address : tokenOut.address;
-            }
-            // main tokens
-            const hasTokenIn = tokens.some((token) => token.address.toLowerCase() === tokenInAddress.toLowerCase());
-            const hasTokenOut = tokens.some((token) => token.address.toLowerCase() === tokenOutAddress.toLowerCase());
-            // Meta tokens in MetaPools [ERC20, [...3PoolTokens]]
-            const hasMetaTokenIn = metaTokens === null || metaTokens === void 0 ? void 0 : metaTokens.some((token) => token.address.toLowerCase() === tokenInAddress.toLowerCase());
-            const hasMetaTokenOut = metaTokens === null || metaTokens === void 0 ? void 0 : metaTokens.some((token) => token.address.toLowerCase() === tokenOutAddress.toLowerCase());
-            // Underlying tokens, similar to meta tokens
-            const hasUnderlyingTokenIn = underlyingTokens === null || underlyingTokens === void 0 ? void 0 : underlyingTokens.some((token) => token.address.toLowerCase() === tokenInAddress.toLowerCase());
-            const hasUnderlyingTokenOut = underlyingTokens === null || underlyingTokens === void 0 ? void 0 : underlyingTokens.some((token) => token.address.toLowerCase() === tokenOutAddress.toLowerCase());
-            return ((hasTokenIn || hasUnderlyingTokenIn || hasMetaTokenIn) &&
-                (hasTokenOut || hasUnderlyingTokenOut || hasMetaTokenOut));
-        });
+async function getRoutablePools(pools, tokenIn, tokenOut, chainId) {
+    return pools.filter(({ tokens, metaTokens, underlyingTokens, allowsTradingETH }) => {
+        let tokenInAddress = tokenIn.address;
+        let tokenOutAddress = tokenOut.address;
+        // For mainnet, account for ETH/WETH
+        if (chainId === constants_1.ChainId.MAINNET) {
+            const isTokenInEther = tokenIn.address.toLowerCase() === tokens_1.TOKENS_MAINNET.eth.address.toLowerCase();
+            const isTokenOutEther = tokenOut.address.toLowerCase() === tokens_1.TOKENS_MAINNET.eth.address.toLowerCase();
+            tokenInAddress = allowsTradingETH === true && isTokenInEther ? tokens_1.TOKENS_MAINNET.weth.address : tokenIn.address;
+            tokenOutAddress = allowsTradingETH === true && isTokenOutEther ? tokens_1.TOKENS_MAINNET.weth.address : tokenOut.address;
+        }
+        // main tokens
+        const hasTokenIn = tokens.some((token) => token.address.toLowerCase() === tokenInAddress.toLowerCase());
+        const hasTokenOut = tokens.some((token) => token.address.toLowerCase() === tokenOutAddress.toLowerCase());
+        // Meta tokens in MetaPools [ERC20, [...3PoolTokens]]
+        const hasMetaTokenIn = metaTokens?.some((token) => token.address.toLowerCase() === tokenInAddress.toLowerCase());
+        const hasMetaTokenOut = metaTokens?.some((token) => token.address.toLowerCase() === tokenOutAddress.toLowerCase());
+        // Underlying tokens, similar to meta tokens
+        const hasUnderlyingTokenIn = underlyingTokens?.some((token) => token.address.toLowerCase() === tokenInAddress.toLowerCase());
+        const hasUnderlyingTokenOut = underlyingTokens?.some((token) => token.address.toLowerCase() === tokenOutAddress.toLowerCase());
+        return ((hasTokenIn || hasUnderlyingTokenIn || hasMetaTokenIn) &&
+            (hasTokenOut || hasUnderlyingTokenOut || hasMetaTokenOut));
     });
 }
 exports.getRoutablePools = getRoutablePools;

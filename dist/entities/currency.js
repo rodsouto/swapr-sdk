@@ -12,6 +12,46 @@ const NULL_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
  * The only instances of the base class `Currency` are native currencies such as Ether for Ethereum and xDAI for xDAI.
  */
 class Currency {
+    decimals;
+    symbol;
+    name;
+    address;
+    // fiat currencies used to represent countervalues
+    static USD = new Currency(18, 'USD', 'US dollar');
+    /**
+     * Ethereum and Ethereum testnets native currency.
+     */
+    static ETHER = new Currency(18, 'ETH', 'Ether', NULL_ADDRESS);
+    static OPTIMISM_ETHER = new Currency(18, 'ETH', 'Ether', '0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000');
+    /**
+     * Gnosis Chain native currency
+     */
+    static XDAI = new Currency(18, 'XDAI', 'xDAI', NULL_ADDRESS);
+    /**
+     * Polygon PoS native currency
+     */
+    static MATIC = new Currency(18, 'MATIC', 'Matic', NULL_ADDRESS);
+    /**
+     * BSC native currency
+     */
+    static BNB = new Currency(18, 'BNB', 'Binance Coin', NULL_ADDRESS);
+    static NATIVE_CURRENCY = {
+        [constants_1.ChainId.ARBITRUM_GOERLI]: Currency.ETHER,
+        [constants_1.ChainId.ARBITRUM_ONE]: Currency.ETHER,
+        [constants_1.ChainId.ARBITRUM_RINKEBY]: Currency.ETHER,
+        [constants_1.ChainId.BSC_MAINNET]: Currency.BNB,
+        [constants_1.ChainId.BSC_TESTNET]: Currency.BNB,
+        [constants_1.ChainId.GOERLI]: Currency.ETHER,
+        [constants_1.ChainId.MAINNET]: Currency.ETHER,
+        [constants_1.ChainId.OPTIMISM_GOERLI]: Currency.OPTIMISM_ETHER,
+        [constants_1.ChainId.OPTIMISM_MAINNET]: Currency.OPTIMISM_ETHER,
+        [constants_1.ChainId.POLYGON]: Currency.MATIC,
+        [constants_1.ChainId.RINKEBY]: Currency.ETHER,
+        [constants_1.ChainId.SCROLL_MAINNET]: Currency.ETHER,
+        [constants_1.ChainId.XDAI]: Currency.XDAI,
+        [constants_1.ChainId.ZK_SYNC_ERA_MAINNET]: Currency.ETHER,
+        [constants_1.ChainId.ZK_SYNC_ERA_TESTNET]: Currency.ETHER,
+    };
     /**
      * Constructs an instance of the base class `Currency`. The only instance of the base class `Currency` is `Currency.ETHER`.
      * @param decimals decimals of the currency
@@ -33,42 +73,6 @@ class Currency {
     }
 }
 exports.Currency = Currency;
-// fiat currencies used to represent countervalues
-Currency.USD = new Currency(18, 'USD', 'US dollar');
-/**
- * Ethereum and Ethereum testnets native currency.
- */
-Currency.ETHER = new Currency(18, 'ETH', 'Ether', NULL_ADDRESS);
-Currency.OPTIMISM_ETHER = new Currency(18, 'ETH', 'Ether', '0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000');
-/**
- * Gnosis Chain native currency
- */
-Currency.XDAI = new Currency(18, 'XDAI', 'xDAI', NULL_ADDRESS);
-/**
- * Polygon PoS native currency
- */
-Currency.MATIC = new Currency(18, 'MATIC', 'Matic', NULL_ADDRESS);
-/**
- * BSC native currency
- */
-Currency.BNB = new Currency(18, 'BNB', 'Binance Coin', NULL_ADDRESS);
-Currency.NATIVE_CURRENCY = {
-    [constants_1.ChainId.ARBITRUM_GOERLI]: Currency.ETHER,
-    [constants_1.ChainId.ARBITRUM_ONE]: Currency.ETHER,
-    [constants_1.ChainId.ARBITRUM_RINKEBY]: Currency.ETHER,
-    [constants_1.ChainId.BSC_MAINNET]: Currency.BNB,
-    [constants_1.ChainId.BSC_TESTNET]: Currency.BNB,
-    [constants_1.ChainId.GOERLI]: Currency.ETHER,
-    [constants_1.ChainId.MAINNET]: Currency.ETHER,
-    [constants_1.ChainId.OPTIMISM_GOERLI]: Currency.OPTIMISM_ETHER,
-    [constants_1.ChainId.OPTIMISM_MAINNET]: Currency.OPTIMISM_ETHER,
-    [constants_1.ChainId.POLYGON]: Currency.MATIC,
-    [constants_1.ChainId.RINKEBY]: Currency.ETHER,
-    [constants_1.ChainId.SCROLL_MAINNET]: Currency.ETHER,
-    [constants_1.ChainId.XDAI]: Currency.XDAI,
-    [constants_1.ChainId.ZK_SYNC_ERA_MAINNET]: Currency.ETHER,
-    [constants_1.ChainId.ZK_SYNC_ERA_TESTNET]: Currency.ETHER,
-};
 exports.USD = Currency.USD;
 exports.ETHER = Currency.ETHER;
 exports.XDAI = Currency.XDAI;

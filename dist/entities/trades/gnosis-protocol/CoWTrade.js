@@ -30,6 +30,36 @@ var CoWChainId;
  * CoWTrade uses CowFi API to find and route trades through the MEV-protected Gnosis Protocol v2
  */
 class CoWTrade extends trade_1.Trade {
+    inputAmountWithoutFee;
+    outputAmountWithoutFee;
+    /**
+     * The original quote from CoW
+     */
+    quote;
+    /**
+     * Order signature
+     */
+    orderSignatureInfo;
+    /**
+     * The order book api
+     */
+    orderBookApi;
+    /**
+     * The order
+     */
+    order;
+    /**
+     * The execution price of the trade without CoW fee
+     */
+    executionPriceWithoutFee;
+    /**
+     * The Order Id. Obtained and set from after submitting the order from API
+     */
+    orderId;
+    /**
+     * The trade fee amount. Fees are paid in sell token
+     */
+    feeAmount;
     constructor(params) {
         const { chainId, feeAmount, inputAmount, maximumSlippage, outputAmount, quote, tradeType, fee, orderBookApi } = params;
         (0, tiny_invariant_1.default)(!(0, token_1.currencyEquals)(inputAmount.currency, outputAmount.currency), 'SAME_TOKEN');
@@ -101,61 +131,59 @@ class CoWTrade extends trade_1.Trade {
      * @param {Percent} obj.receiver The receiver
      * @returns A GPv2 trade if found, otherwise undefined
      */
-    static bestTradeExactIn({ currencyAmountIn, currencyOut, maximumSlippage, receiver, user, priceQuality, validTo }) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            // Try to extract the chain ID from the tokens
-            const chainId = (0, utils_1.tryGetChainId)(currencyAmountIn, currencyOut);
-            // Require the chain ID
-            (0, tiny_invariant_1.default)(chainId !== undefined && routable_platform_1.RoutablePlatform.COW.supportsChain(chainId), 'CHAIN_ID');
-            const tokenIn = (0, utils_1.wrappedCurrency)(currencyAmountIn.currency, chainId);
-            const tokenOut = currencyOut;
-            const amountInBN = (0, units_1.parseUnits)(currencyAmountIn.toSignificant(), tokenIn.decimals);
-            (0, tiny_invariant_1.default)(!tokenIn.equals(tokenOut), 'CURRENCY');
-            // const etherOut = this.outputAmount.currency === nativeCurrency
-            // the router does not support both ether in and out
-            // invariant(!(etherIn && etherOut), 'ETHER_IN_OUT')
-            try {
-                const orderBookApi = new cow_sdk_1.OrderBookApi({
-                    chainId: chainId,
-                    env: 'prod',
-                });
-                const quoteResponse = yield orderBookApi.getQuote({
-                    appData: CoWTrade.getAppData(chainId).ipfsHashInfo.appData,
-                    buyToken: tokenOut.address,
-                    kind: cow_sdk_1.OrderQuoteSideKindSell.SELL,
-                    from: user,
-                    receiver,
-                    validTo: validTo || (0, dayjs_1.default)().add(1, 'h').unix(),
-                    partiallyFillable: false,
-                    sellAmountBeforeFee: amountInBN.toString(),
-                    sellToken: tokenIn.address,
-                    priceQuality,
-                });
-                // CoW Swap doesn't charge any fee
-                const fee = ZERO_PERCENT;
-                const feeAmount = currency_1.Currency.isNative(currencyAmountIn.currency)
-                    ? currencyAmount_1.CurrencyAmount.nativeCurrency(constants_1.ZERO, chainId)
-                    : new tokenAmount_1.TokenAmount(currencyAmountIn.currency, constants_1.ZERO);
-                const sellAmount = jsbi_1.default.add(jsbi_1.default.BigInt(quoteResponse.quote.sellAmount.toString()), jsbi_1.default.BigInt(quoteResponse.quote.feeAmount.toString())).toString();
-                return new CoWTrade({
-                    chainId,
-                    maximumSlippage,
-                    tradeType: constants_1.TradeType.EXACT_INPUT,
-                    inputAmount: currencyAmountIn,
-                    outputAmount: currency_1.Currency.isNative(currencyOut)
-                        ? currencyAmount_1.CurrencyAmount.nativeCurrency(quoteResponse.quote.buyAmount.toString(), chainId)
-                        : new tokenAmount_1.TokenAmount(tokenOut, quoteResponse.quote.buyAmount.toString()),
-                    fee,
-                    feeAmount,
-                    quote: Object.assign(Object.assign({}, quoteResponse), { quote: Object.assign(Object.assign({}, quoteResponse.quote), { sellAmount, feeAmount: '0' }) }),
-                    orderBookApi
-                });
-            }
-            catch (error) {
-                console.error('could not fetch Cow trade', error);
-                return;
-            }
-        });
+    static async bestTradeExactIn({ currencyAmountIn, currencyOut, maximumSlippage, receiver, user, priceQuality, validTo }) {
+        // Try to extract the chain ID from the tokens
+        const chainId = (0, utils_1.tryGetChainId)(currencyAmountIn, currencyOut);
+        // Require the chain ID
+        (0, tiny_invariant_1.default)(chainId !== undefined && routable_platform_1.RoutablePlatform.COW.supportsChain(chainId), 'CHAIN_ID');
+        const tokenIn = (0, utils_1.wrappedCurrency)(currencyAmountIn.currency, chainId);
+        const tokenOut = currencyOut;
+        const amountInBN = (0, units_1.parseUnits)(currencyAmountIn.toSignificant(), tokenIn.decimals);
+        (0, tiny_invariant_1.default)(!tokenIn.equals(tokenOut), 'CURRENCY');
+        // const etherOut = this.outputAmount.currency === nativeCurrency
+        // the router does not support both ether in and out
+        // invariant(!(etherIn && etherOut), 'ETHER_IN_OUT')
+        try {
+            const orderBookApi = new cow_sdk_1.OrderBookApi({
+                chainId: chainId,
+                env: 'prod',
+            });
+            const quoteResponse = await orderBookApi.getQuote({
+                appData: CoWTrade.getAppData(chainId).ipfsHashInfo.appData,
+                buyToken: tokenOut.address,
+                kind: cow_sdk_1.OrderQuoteSideKindSell.SELL,
+                from: user,
+                receiver,
+                validTo: validTo || (0, dayjs_1.default)().add(1, 'h').unix(),
+                partiallyFillable: false,
+                sellAmountBeforeFee: amountInBN.toString(),
+                sellToken: tokenIn.address,
+                priceQuality,
+            });
+            // CoW Swap doesn't charge any fee
+            const fee = ZERO_PERCENT;
+            const feeAmount = currency_1.Currency.isNative(currencyAmountIn.currency)
+                ? currencyAmount_1.CurrencyAmount.nativeCurrency(constants_1.ZERO, chainId)
+                : new tokenAmount_1.TokenAmount(currencyAmountIn.currency, constants_1.ZERO);
+            const sellAmount = jsbi_1.default.add(jsbi_1.default.BigInt(quoteResponse.quote.sellAmount.toString()), jsbi_1.default.BigInt(quoteResponse.quote.feeAmount.toString())).toString();
+            return new CoWTrade({
+                chainId,
+                maximumSlippage,
+                tradeType: constants_1.TradeType.EXACT_INPUT,
+                inputAmount: currencyAmountIn,
+                outputAmount: currency_1.Currency.isNative(currencyOut)
+                    ? currencyAmount_1.CurrencyAmount.nativeCurrency(quoteResponse.quote.buyAmount.toString(), chainId)
+                    : new tokenAmount_1.TokenAmount(tokenOut, quoteResponse.quote.buyAmount.toString()),
+                fee,
+                feeAmount,
+                quote: { ...quoteResponse, quote: { ...quoteResponse.quote, sellAmount, feeAmount: '0' } },
+                orderBookApi
+            });
+        }
+        catch (error) {
+            console.error('could not fetch Cow trade', error);
+            return;
+        }
     }
     /**
      * Computes and returns the best trade from Gnosis Protocol API
@@ -165,71 +193,72 @@ class CoWTrade extends trade_1.Trade {
      * @param {Percent} obj.maximumSlippage Maximum slippage
      * @returns A GPv2 trade if found, otherwise undefined
      */
-    static bestTradeExactOut({ currencyAmountOut, currencyIn, maximumSlippage, receiver, user, priceQuality, validTo }) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            // Try to extract the chain ID from the tokens
-            const chainId = (0, utils_1.tryGetChainId)(currencyAmountOut, currencyIn);
-            // Require the chain ID
-            (0, tiny_invariant_1.default)(chainId !== undefined && routable_platform_1.RoutablePlatform.COW.supportsChain(chainId), 'CHAIN_ID');
-            const tokenIn = (0, utils_1.wrappedCurrency)(currencyIn, chainId);
-            const tokenOut = currencyAmountOut.currency;
-            const amountOutBN = (0, units_1.parseUnits)(currencyAmountOut.toSignificant(), tokenOut.decimals);
-            (0, tiny_invariant_1.default)(!tokenIn.equals(tokenOut), 'CURRENCY');
-            try {
-                const orderBookApi = new cow_sdk_1.OrderBookApi({
-                    chainId: chainId,
-                    env: 'prod',
-                });
-                const quoteResponse = yield orderBookApi.getQuote({
-                    appData: CoWTrade.getAppData(chainId).ipfsHashInfo.appData,
-                    buyAmountAfterFee: amountOutBN.toString(),
-                    buyToken: tokenOut.address,
-                    from: user,
-                    kind: cow_sdk_1.OrderQuoteSideKindBuy.BUY,
-                    sellToken: tokenIn.address,
-                    partiallyFillable: false,
-                    receiver,
-                    validTo: validTo || (0, dayjs_1.default)().add(1, 'h').unix(),
-                    priceQuality,
-                });
-                const inputAmount = currency_1.Currency.isNative(currencyIn)
-                    ? currencyAmount_1.CurrencyAmount.nativeCurrency(quoteResponse.quote.sellAmount.toString(), chainId)
-                    : new tokenAmount_1.TokenAmount(tokenIn, quoteResponse.quote.sellAmount.toString());
-                const outputAmount = currency_1.Currency.isNative(currencyAmountOut.currency)
-                    ? currencyAmount_1.CurrencyAmount.nativeCurrency(quoteResponse.quote.buyAmount.toString(), chainId)
-                    : new tokenAmount_1.TokenAmount(tokenOut, quoteResponse.quote.buyAmount.toString());
-                // CoW Swap doesn't charge any fee
-                const fee = ZERO_PERCENT;
-                const feeAmount = currency_1.Currency.isNative(currencyIn)
-                    ? currencyAmount_1.CurrencyAmount.nativeCurrency(constants_1.ZERO, chainId)
-                    : new tokenAmount_1.TokenAmount(currencyIn, constants_1.ZERO);
-                const sellAmount = jsbi_1.default.add(jsbi_1.default.BigInt(quoteResponse.quote.sellAmount.toString()), jsbi_1.default.BigInt(quoteResponse.quote.feeAmount.toString())).toString();
-                return new CoWTrade({
-                    chainId,
-                    maximumSlippage,
-                    tradeType: constants_1.TradeType.EXACT_OUTPUT,
-                    inputAmount,
-                    outputAmount,
-                    fee,
-                    feeAmount,
-                    quote: Object.assign(Object.assign({}, quoteResponse), { quote: Object.assign(Object.assign({}, quoteResponse.quote), { sellAmount, feeAmount: '0' }) }),
-                    orderBookApi
-                });
-            }
-            catch (error) {
-                console.error('could not fetch COW trade', error);
-                return;
-            }
-        });
+    static async bestTradeExactOut({ currencyAmountOut, currencyIn, maximumSlippage, receiver, user, priceQuality, validTo }) {
+        // Try to extract the chain ID from the tokens
+        const chainId = (0, utils_1.tryGetChainId)(currencyAmountOut, currencyIn);
+        // Require the chain ID
+        (0, tiny_invariant_1.default)(chainId !== undefined && routable_platform_1.RoutablePlatform.COW.supportsChain(chainId), 'CHAIN_ID');
+        const tokenIn = (0, utils_1.wrappedCurrency)(currencyIn, chainId);
+        const tokenOut = currencyAmountOut.currency;
+        const amountOutBN = (0, units_1.parseUnits)(currencyAmountOut.toSignificant(), tokenOut.decimals);
+        (0, tiny_invariant_1.default)(!tokenIn.equals(tokenOut), 'CURRENCY');
+        try {
+            const orderBookApi = new cow_sdk_1.OrderBookApi({
+                chainId: chainId,
+                env: 'prod',
+            });
+            const quoteResponse = await orderBookApi.getQuote({
+                appData: CoWTrade.getAppData(chainId).ipfsHashInfo.appData,
+                buyAmountAfterFee: amountOutBN.toString(),
+                buyToken: tokenOut.address,
+                from: user,
+                kind: cow_sdk_1.OrderQuoteSideKindBuy.BUY,
+                sellToken: tokenIn.address,
+                partiallyFillable: false,
+                receiver,
+                validTo: validTo || (0, dayjs_1.default)().add(1, 'h').unix(),
+                priceQuality,
+            });
+            const inputAmount = currency_1.Currency.isNative(currencyIn)
+                ? currencyAmount_1.CurrencyAmount.nativeCurrency(quoteResponse.quote.sellAmount.toString(), chainId)
+                : new tokenAmount_1.TokenAmount(tokenIn, quoteResponse.quote.sellAmount.toString());
+            const outputAmount = currency_1.Currency.isNative(currencyAmountOut.currency)
+                ? currencyAmount_1.CurrencyAmount.nativeCurrency(quoteResponse.quote.buyAmount.toString(), chainId)
+                : new tokenAmount_1.TokenAmount(tokenOut, quoteResponse.quote.buyAmount.toString());
+            // CoW Swap doesn't charge any fee
+            const fee = ZERO_PERCENT;
+            const feeAmount = currency_1.Currency.isNative(currencyIn)
+                ? currencyAmount_1.CurrencyAmount.nativeCurrency(constants_1.ZERO, chainId)
+                : new tokenAmount_1.TokenAmount(currencyIn, constants_1.ZERO);
+            const sellAmount = jsbi_1.default.add(jsbi_1.default.BigInt(quoteResponse.quote.sellAmount.toString()), jsbi_1.default.BigInt(quoteResponse.quote.feeAmount.toString())).toString();
+            return new CoWTrade({
+                chainId,
+                maximumSlippage,
+                tradeType: constants_1.TradeType.EXACT_OUTPUT,
+                inputAmount,
+                outputAmount,
+                fee,
+                feeAmount,
+                quote: { ...quoteResponse, quote: { ...quoteResponse.quote, sellAmount, feeAmount: '0' } },
+                orderBookApi
+            });
+        }
+        catch (error) {
+            console.error('could not fetch COW trade', error);
+            return;
+        }
     }
     getUnsignedOrder() {
-        return Object.assign(Object.assign({}, this.quote.quote), (this.quote.quote.kind === 'buy'
-            ? {
-                sellAmount: this.maximumAmountIn().raw.toString(),
-            }
-            : {
-                buyAmount: this.minimumAmountOut().raw.toString(),
-            }));
+        return {
+            ...this.quote.quote,
+            ...(this.quote.quote.kind === 'buy'
+                ? {
+                    sellAmount: this.maximumAmountIn().raw.toString(),
+                }
+                : {
+                    buyAmount: this.minimumAmountOut().raw.toString(),
+                }),
+        };
     }
     /**
      * Signs the order by adding signature
@@ -237,15 +266,13 @@ class CoWTrade extends trade_1.Trade {
      * @returns The current instance
      * @throws {CoWTradeError} If the order is missing a receiver
      */
-    signOrder(signer) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            const signOrderResults = yield cow_sdk_1.OrderSigningUtils.signOrder(this.getUnsignedOrder(), this.chainId, signer);
-            if (!signOrderResults.signature) {
-                throw new CoWTradeError_1.CoWTradeError('Order was not signed');
-            }
-            this.orderSignatureInfo = signOrderResults;
-            return this;
-        });
+    async signOrder(signer) {
+        const signOrderResults = await cow_sdk_1.OrderSigningUtils.signOrder(this.getUnsignedOrder(), this.chainId, signer);
+        if (!signOrderResults.signature) {
+            throw new CoWTradeError_1.CoWTradeError('Order was not signed');
+        }
+        this.orderSignatureInfo = signOrderResults;
+        return this;
     }
     /**
      * Cancels the current instance order, if submitted
@@ -253,13 +280,11 @@ class CoWTrade extends trade_1.Trade {
      * @returns True if the order was cancelled, false otherwise
      * @throws {CoWTradeError} If the order is yet to be submitted
      */
-    cancelOrder(signer) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            if (!this.orderId) {
-                throw new CoWTradeError_1.CoWTradeError('CoWTrade: Missing order ID');
-            }
-            return CoWTrade.cancelOrder(this.orderId, this.chainId, signer);
-        });
+    async cancelOrder(signer) {
+        if (!this.orderId) {
+            throw new CoWTradeError_1.CoWTradeError('CoWTrade: Missing order ID');
+        }
+        return CoWTrade.cancelOrder(this.orderId, this.chainId, signer);
     }
     /**
      * Cancels the current instance order, if submitted
@@ -268,16 +293,17 @@ class CoWTrade extends trade_1.Trade {
      * @param signer A Signer with ability to sign the payload
      * @returns the signing results
      */
-    static cancelOrder(orderId, chainId, signer) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            const orderCancellationSignature = yield cow_sdk_1.OrderSigningUtils.signOrderCancellations([orderId], chainId, signer);
-            if (!orderCancellationSignature.signature) {
-                throw new CoWTradeError_1.CoWTradeError('Order cancellation was not signed');
-            }
-            return yield new cow_sdk_1.OrderBookApi({
-                chainId: chainId,
-                env: 'prod',
-            }).sendSignedOrderCancellations(Object.assign(Object.assign({}, orderCancellationSignature), { orderUids: [orderId] }));
+    static async cancelOrder(orderId, chainId, signer) {
+        const orderCancellationSignature = await cow_sdk_1.OrderSigningUtils.signOrderCancellations([orderId], chainId, signer);
+        if (!orderCancellationSignature.signature) {
+            throw new CoWTradeError_1.CoWTradeError('Order cancellation was not signed');
+        }
+        return await new cow_sdk_1.OrderBookApi({
+            chainId: chainId,
+            env: 'prod',
+        }).sendSignedOrderCancellations({
+            ...orderCancellationSignature,
+            orderUids: [orderId],
         });
     }
     /**
@@ -285,17 +311,21 @@ class CoWTrade extends trade_1.Trade {
      * @returns The order ID from GPv2
      * @throws {CoWTradeError} If the order is missing a signature
      */
-    submitOrder() {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            if (!this.orderSignatureInfo) {
-                throw new CoWTradeError_1.CoWTradeError('CoWTrade: Missing order signature');
-            }
-            const { from, id: quoteId } = this.quote;
-            const sendOrderParams = Object.assign(Object.assign({}, this.getUnsignedOrder()), { quoteId, signature: this.orderSignatureInfo.signature, signingScheme: this.orderSignatureInfo.signingScheme, owner: from });
-            this.orderId = yield this.orderBookApi.sendOrder(sendOrderParams);
-            this.order = yield this.orderBookApi.getOrder(this.orderId);
-            return this.orderId;
-        });
+    async submitOrder() {
+        if (!this.orderSignatureInfo) {
+            throw new CoWTradeError_1.CoWTradeError('CoWTrade: Missing order signature');
+        }
+        const { from, id: quoteId } = this.quote;
+        const sendOrderParams = {
+            ...this.getUnsignedOrder(),
+            quoteId,
+            signature: this.orderSignatureInfo.signature,
+            signingScheme: this.orderSignatureInfo.signingScheme,
+            owner: from,
+        };
+        this.orderId = await this.orderBookApi.sendOrder(sendOrderParams);
+        this.order = await this.orderBookApi.getOrder(this.orderId);
+        return this.orderId;
     }
     /**
      * Gets the app data for Swapr's CoW trade
@@ -311,9 +341,8 @@ class CoWTrade extends trade_1.Trade {
      * @returns The vault relayer address or undefined
      */
     static getVaultRelayerAddress(chainId) {
-        var _a;
         // @ts-ignore
-        return (_a = networks_json_1.default.GPv2VaultRelayer[chainId]) === null || _a === void 0 ? void 0 : _a.address;
+        return networks_json_1.default.GPv2VaultRelayer[chainId]?.address;
     }
     /**
      * Returns the settlement contract address for the given chain
@@ -321,9 +350,8 @@ class CoWTrade extends trade_1.Trade {
      * @returns The settlement address or undefined
      */
     static getSettlementAddress(chainId) {
-        var _a;
         // @ts-ignore
-        return (_a = networks_json_1.default.GPv2Settlement[chainId]) === null || _a === void 0 ? void 0 : _a.address;
+        return networks_json_1.default.GPv2Settlement[chainId]?.address;
     }
 }
 exports.CoWTrade = CoWTrade;

@@ -27,6 +27,10 @@ const debugUniswapTradeGetQuote = (0, debug_1.default)('ecoRouter:uniswap:getQuo
  * UniswapTrade uses the AutoRouter to find best trade across V2 and V3 pools
  */
 class UniswapTrade extends trade_1.TradeWithSwapTransaction {
+    /**
+     * @property The original SwapRoute object from the Routing API
+     */
+    swapRoute;
     constructor({ maximumSlippage, swapRoute }) {
         const chainId = swapRoute.trade.inputAmount.currency.chainId;
         // Require chainId
@@ -75,46 +79,45 @@ class UniswapTrade extends trade_1.TradeWithSwapTransaction {
         });
         this.swapRoute = swapRoute;
     }
-    static getQuote({ amount, quoteCurrency, tradeType, recipient, maximumSlippage }, provider) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            const chainId = (0, utils_1.tryGetChainId)(amount, quoteCurrency);
-            (0, tiny_invariant_1.default)(chainId, 'UniswapV3Trade.getQuote: chainId is required');
-            // Defaults
-            recipient = recipient || constants_1.AddressZero;
-            maximumSlippage = maximumSlippage || constants_3.maximumSlippage;
-            provider = provider || (0, utils_1.getProvider)(chainId);
-            // Must match the currencies provided
-            (0, tiny_invariant_1.default)((yield provider.getNetwork()).chainId == chainId, `UniswapTrade.getQuote: currencies chainId does not match provider's chainId`);
-            const alphaRouter = new smart_order_router_1.AlphaRouter({ chainId: chainId, provider });
-            // Map the current currencies to compatible types from the Uniswap SDK
-            const amountV3 = sdk_core_1.CurrencyAmount.fromRawAmount(currency_1.Currency.isNative(amount.currency)
-                ? (0, utils_2.getUniswapNativeCurrency)(chainId)
-                : new sdk_core_1.Token(chainId, amount.currency.address, amount.currency.decimals, amount.currency.symbol, amount.currency.name), amount.raw);
-            const quoteCurrencyV3 = currency_1.Currency.isNative(quoteCurrency)
-                ? (0, utils_2.getUniswapNativeCurrency)(chainId)
-                : new sdk_core_1.Token(chainId, quoteCurrency.address, quoteCurrency.decimals, quoteCurrency.symbol, quoteCurrency.name);
-            debugUniswapTradeGetQuote({
-                amountV3,
-                quoteCurrencyV3,
-                tradeType,
-                recipient,
-                maximumSlippage,
-                alphaRouter,
-            });
-            const routeResponse = yield alphaRouter.route(amountV3, quoteCurrencyV3, tradeType, {
-                recipient,
-                slippageTolerance: new sdk_core_1.Percent(maximumSlippage.numerator, maximumSlippage.denominator),
-                deadline: (0, dayjs_1.default)().add(30, 'm').unix(),
-            }, {
-                protocols: [router_sdk_1.Protocol.V2, router_sdk_1.Protocol.V3],
-            });
-            // Debug
-            debugUniswapTradeGetQuote(routeResponse);
-            if (routeResponse) {
-                return new UniswapTrade({ maximumSlippage, swapRoute: routeResponse });
-            }
-            return null;
+    static async getQuote({ amount, quoteCurrency, tradeType, recipient, maximumSlippage }, provider) {
+        const chainId = (0, utils_1.tryGetChainId)(amount, quoteCurrency);
+        (0, tiny_invariant_1.default)(chainId, 'UniswapV3Trade.getQuote: chainId is required');
+        // Defaults
+        recipient = recipient || constants_1.AddressZero;
+        maximumSlippage = maximumSlippage || constants_3.maximumSlippage;
+        provider = provider || (0, utils_1.getProvider)(chainId);
+        // Must match the currencies provided
+        (0, tiny_invariant_1.default)((await provider.getNetwork()).chainId == chainId, `UniswapTrade.getQuote: currencies chainId does not match provider's chainId`);
+        const alphaRouter = new smart_order_router_1.AlphaRouter({ chainId: chainId, provider });
+        // Map the current currencies to compatible types from the Uniswap SDK
+        const amountV3 = sdk_core_1.CurrencyAmount.fromRawAmount(currency_1.Currency.isNative(amount.currency)
+            ? (0, utils_2.getUniswapNativeCurrency)(chainId)
+            : new sdk_core_1.Token(chainId, amount.currency.address, amount.currency.decimals, amount.currency.symbol, amount.currency.name), amount.raw);
+        const quoteCurrencyV3 = currency_1.Currency.isNative(quoteCurrency)
+            ? (0, utils_2.getUniswapNativeCurrency)(chainId)
+            : new sdk_core_1.Token(chainId, quoteCurrency.address, quoteCurrency.decimals, quoteCurrency.symbol, quoteCurrency.name);
+        debugUniswapTradeGetQuote({
+            amountV3,
+            quoteCurrencyV3,
+            tradeType,
+            recipient,
+            maximumSlippage,
+            alphaRouter,
         });
+        const routeResponse = await alphaRouter.route(amountV3, quoteCurrencyV3, tradeType, {
+            recipient,
+            slippageTolerance: new sdk_core_1.Percent(maximumSlippage.numerator, maximumSlippage.denominator),
+            deadline: (0, dayjs_1.default)().add(30, 'm').unix(),
+            type: smart_order_router_1.SwapType.SWAP_ROUTER_02
+        }, {
+            protocols: [router_sdk_1.Protocol.V2, router_sdk_1.Protocol.V3],
+        });
+        // Debug
+        debugUniswapTradeGetQuote(routeResponse);
+        if (routeResponse) {
+            return new UniswapTrade({ maximumSlippage, swapRoute: routeResponse });
+        }
+        return null;
     }
     minimumAmountOut() {
         if (this.tradeType === constants_2.TradeType.EXACT_OUTPUT) {
@@ -143,18 +146,15 @@ class UniswapTrade extends trade_1.TradeWithSwapTransaction {
                 : fractions_1.CurrencyAmount.nativeCurrency(slippageAdjustedAmountIn, this.chainId);
         }
     }
-    swapTransaction(options) {
-        var _a, _b, _c;
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            const callData = (0, utils_2.encodeRecipient)(this.tradeType, options.recipient, (_a = this.swapRoute.methodParameters) === null || _a === void 0 ? void 0 : _a.calldata);
-            return {
-                value: ((_b = this.swapRoute.methodParameters) === null || _b === void 0 ? void 0 : _b.value)
-                    ? bignumber_1.BigNumber.from((_c = this.swapRoute.methodParameters) === null || _c === void 0 ? void 0 : _c.value)
-                    : undefined,
-                data: callData,
-                to: this.approveAddress,
-            };
-        });
+    async swapTransaction(options) {
+        const callData = (0, utils_2.encodeRecipient)(this.tradeType, options.recipient, this.swapRoute.methodParameters?.calldata);
+        return {
+            value: this.swapRoute.methodParameters?.value
+                ? bignumber_1.BigNumber.from(this.swapRoute.methodParameters?.value)
+                : undefined,
+            data: callData,
+            to: this.approveAddress,
+        };
     }
 }
 exports.UniswapTrade = UniswapTrade;

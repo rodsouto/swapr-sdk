@@ -35,63 +35,61 @@ class OneInchTrade extends trade_1.Trade {
             approveAddress,
         });
     }
-    static getQuote({ amount, quoteCurrency, tradeType, maximumSlippage = constants_2.maximumSlippage }, provider) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            const chainId = (0, utils_1.tryGetChainId)(amount, quoteCurrency);
-            if (!chainId) {
-                throw new Error('getQuote: chainId is required');
-            }
-            provider = provider || (0, utils_1.getProvider)(chainId);
-            // Ensure the provider's chainId matches the provided currencies
-            (0, tiny_invariant_1.default)((yield provider.getNetwork()).chainId == chainId, `OneInch.getQuote: currencies chainId does not match provider's chainId`);
-            const currencyIn = amount.currency;
-            const currencyOut = quoteCurrency;
-            // Ensure that the currencies are present
-            (0, tiny_invariant_1.default)(currencyIn.address && currencyOut.address, `getQuote: Currency address is required`);
-            try {
-                //Fetch approve address
-                const { address: approveAddress } = yield (yield fetch((0, api_1.approveAddressUrl)(chainId))).json();
+    static async getQuote({ amount, quoteCurrency, tradeType, maximumSlippage = constants_2.maximumSlippage }, provider) {
+        const chainId = (0, utils_1.tryGetChainId)(amount, quoteCurrency);
+        if (!chainId) {
+            throw new Error('getQuote: chainId is required');
+        }
+        provider = provider || (0, utils_1.getProvider)(chainId);
+        // Ensure the provider's chainId matches the provided currencies
+        (0, tiny_invariant_1.default)((await provider.getNetwork()).chainId == chainId, `OneInch.getQuote: currencies chainId does not match provider's chainId`);
+        const currencyIn = amount.currency;
+        const currencyOut = quoteCurrency;
+        // Ensure that the currencies are present
+        (0, tiny_invariant_1.default)(currencyIn.address && currencyOut.address, `getQuote: Currency address is required`);
+        try {
+            //Fetch approve address
+            const { address: approveAddress } = await (await fetch((0, api_1.approveAddressUrl)(chainId))).json();
+            // Prepare the query parameters for the API request
+            const queryParams = {
+                fromTokenAddress: currencyIn.address,
+                toTokenAddress: currencyOut.address,
+                amount: amount.raw.toString(),
+            };
+            const { toAmount } = await (await fetch((0, api_1.generateApiRequestUrl)({ methodName: api_1.RequestType.QUOTE, queryParams, chainId }))).json();
+            let toTokenAmountApi = toAmount;
+            const fromTokenAmountApi = amount.raw.toString();
+            if (tradeType === constants_1.TradeType.EXACT_OUTPUT) {
                 // Prepare the query parameters for the API request
                 const queryParams = {
-                    fromTokenAddress: currencyIn.address,
-                    toTokenAddress: currencyOut.address,
-                    amount: amount.raw.toString(),
+                    fromTokenAddress: currencyOut.address,
+                    toTokenAddress: currencyIn.address,
+                    amount: toAmount.toString(),
                 };
-                const { toAmount } = yield (yield fetch((0, api_1.generateApiRequestUrl)({ methodName: api_1.RequestType.QUOTE, queryParams, chainId }))).json();
-                let toTokenAmountApi = toAmount;
-                const fromTokenAmountApi = amount.raw.toString();
-                if (tradeType === constants_1.TradeType.EXACT_OUTPUT) {
-                    // Prepare the query parameters for the API request
-                    const queryParams = {
-                        fromTokenAddress: currencyOut.address,
-                        toTokenAddress: currencyIn.address,
-                        amount: toAmount.toString(),
-                    };
-                    const { toAmount: toTokenAmountOutput } = yield (yield fetch((0, api_1.generateApiRequestUrl)({ methodName: api_1.RequestType.QUOTE, queryParams, chainId }))).json();
-                    toTokenAmountApi = toTokenAmountOutput;
-                }
-                const currencyInType = tradeType === constants_1.TradeType.EXACT_INPUT ? currencyIn : currencyOut;
-                const currencyOutType = tradeType === constants_1.TradeType.EXACT_INPUT ? currencyOut : currencyIn;
-                const currencyAmountIn = currency_1.Currency.isNative(currencyInType)
-                    ? fractions_1.CurrencyAmount.nativeCurrency(fromTokenAmountApi, chainId)
-                    : new fractions_1.TokenAmount((0, utils_1.wrappedCurrency)(currencyInType, chainId), fromTokenAmountApi);
-                const currencyAmountOut = currency_1.Currency.isNative(currencyOutType)
-                    ? fractions_1.CurrencyAmount.nativeCurrency(toTokenAmountApi, chainId)
-                    : new fractions_1.TokenAmount((0, utils_1.wrappedCurrency)(currencyOutType, chainId), toTokenAmountApi);
-                return new OneInchTrade({
-                    maximumSlippage,
-                    currencyAmountIn,
-                    currencyAmountOut,
-                    tradeType,
-                    chainId,
-                    approveAddress,
-                });
+                const { toAmount: toTokenAmountOutput } = await (await fetch((0, api_1.generateApiRequestUrl)({ methodName: api_1.RequestType.QUOTE, queryParams, chainId }))).json();
+                toTokenAmountApi = toTokenAmountOutput;
             }
-            catch (error) {
-                console.error('OneInch.getQuote: Error fetching the quote:', error.message);
-                return null;
-            }
-        });
+            const currencyInType = tradeType === constants_1.TradeType.EXACT_INPUT ? currencyIn : currencyOut;
+            const currencyOutType = tradeType === constants_1.TradeType.EXACT_INPUT ? currencyOut : currencyIn;
+            const currencyAmountIn = currency_1.Currency.isNative(currencyInType)
+                ? fractions_1.CurrencyAmount.nativeCurrency(fromTokenAmountApi, chainId)
+                : new fractions_1.TokenAmount((0, utils_1.wrappedCurrency)(currencyInType, chainId), fromTokenAmountApi);
+            const currencyAmountOut = currency_1.Currency.isNative(currencyOutType)
+                ? fractions_1.CurrencyAmount.nativeCurrency(toTokenAmountApi, chainId)
+                : new fractions_1.TokenAmount((0, utils_1.wrappedCurrency)(currencyOutType, chainId), toTokenAmountApi);
+            return new OneInchTrade({
+                maximumSlippage,
+                currencyAmountIn,
+                currencyAmountOut,
+                tradeType,
+                chainId,
+                approveAddress,
+            });
+        }
+        catch (error) {
+            console.error('OneInch.getQuote: Error fetching the quote:', error.message);
+            return null;
+        }
     }
     minimumAmountOut() {
         if (this.tradeType === constants_1.TradeType.EXACT_OUTPUT) {
@@ -124,30 +122,28 @@ class OneInchTrade extends trade_1.Trade {
      * Returns unsigned transaction for the trade
      * @returns the unsigned transaction
      */
-    swapTransaction(options) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            (0, tiny_invariant_1.default)(this.inputAmount.currency.address && this.outputAmount.currency.address, 'OneInchTrade: Currency address is required');
-            const queryParams = {
-                fromTokenAddress: this.inputAmount.currency.address,
-                toTokenAddress: this.outputAmount.currency.address,
-                amount: this.inputAmount.raw.toString(),
-                fromAddress: options.account,
-                slippage: this.maximumSlippage.toSignificant(2),
-                destReciever: options.recipient,
+    async swapTransaction(options) {
+        (0, tiny_invariant_1.default)(this.inputAmount.currency.address && this.outputAmount.currency.address, 'OneInchTrade: Currency address is required');
+        const queryParams = {
+            fromTokenAddress: this.inputAmount.currency.address,
+            toTokenAddress: this.outputAmount.currency.address,
+            amount: this.inputAmount.raw.toString(),
+            fromAddress: options.account,
+            slippage: this.maximumSlippage.toSignificant(2),
+            destReciever: options.recipient,
+        };
+        try {
+            // Fetch the unsigned transaction from the API
+            const { tx } = await (await fetch((0, api_1.generateApiRequestUrl)({ methodName: api_1.RequestType.SWAP, queryParams, chainId: this.chainId }))).json();
+            return {
+                data: tx.data,
+                to: tx.to,
+                value: tx.value,
             };
-            try {
-                // Fetch the unsigned transaction from the API
-                const { tx } = yield (yield fetch((0, api_1.generateApiRequestUrl)({ methodName: api_1.RequestType.SWAP, queryParams, chainId: this.chainId }))).json();
-                return {
-                    data: tx.data,
-                    to: tx.to,
-                    value: tx.value,
-                };
-            }
-            catch (e) {
-                throw new Error(`OneInch.swapTransaction: Error fetching the swap data: ${e.message}`);
-            }
-        });
+        }
+        catch (e) {
+            throw new Error(`OneInch.swapTransaction: Error fetching the swap data: ${e.message}`);
+        }
     }
 }
 exports.OneInchTrade = OneInchTrade;

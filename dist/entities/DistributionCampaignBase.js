@@ -28,6 +28,15 @@ const MINIMUM_STAKED_AMOUNT_NATIVE_CURRENCY = {
     [constants_1.ChainId.ZK_SYNC_ERA_TESTNET]: fractions_1.CurrencyAmount.nativeCurrency((0, units_1.parseUnits)('0', token_1.Token.getNative(constants_1.ChainId.ZK_SYNC_ERA_TESTNET).decimals).toString(), constants_1.ChainId.ZK_SYNC_ERA_TESTNET),
 };
 class DistributionCampaignBase {
+    chainId;
+    address;
+    startsAt;
+    endsAt;
+    rewards;
+    staked;
+    duration;
+    locked;
+    stakingCap;
     constructor({ startsAt, endsAt, rewards, staked, locked, stakingCap, address, }) {
         (0, tiny_invariant_1.default)(jsbi_1.default.lessThan((0, utils_1.parseBigintIsh)(startsAt), (0, utils_1.parseBigintIsh)(endsAt)), 'INCONSISTENT_DATES');
         for (const reward of rewards) {

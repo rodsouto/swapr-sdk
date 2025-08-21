@@ -11,6 +11,9 @@ const currencyAmount_1 = require("./currencyAmount");
 const fraction_1 = require("./fraction");
 const tokenAmount_1 = require("./tokenAmount");
 class Price extends fraction_1.Fraction {
+    baseCurrency; // input i.e. denominator
+    quoteCurrency; // output i.e. numerator
+    scalar; // used to adjust the raw fraction w/r/t the decimals of the {base,quote}Token
     static fromRoute(route) {
         const prices = [];
         for (const [i, pair] of route.pairs.entries()) {

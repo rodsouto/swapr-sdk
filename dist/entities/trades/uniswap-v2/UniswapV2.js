@@ -110,31 +110,29 @@ class UniswapV2Trade extends trade_1.TradeWithSwapTransaction {
      * Computes the best trade for the given input and output amounts.
      * @param {UniswapV2TradeBestTradeExactInParams} params the pairs to consider in finding the best trade
      */
-    static bestTradeExactIn({ currencyAmountIn, currencyOut, maximumSlippage, maxHops: { maxNumResults = 3, maxHops = 3 } = {}, platform, }) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            let bestTrade;
-            try {
-                // Fetch the commons pairs between A and B
-                const commonPairsBetweenCurrenyInAndOut = yield (0, pairs_1.getAllCommonUniswapV2Pairs)({
-                    currencyA: currencyAmountIn.currency,
-                    currencyB: currencyOut,
-                    platform,
-                });
-                // Compare and sort all routes from A to B
-                const tradeRoutes = UniswapV2Trade.computeTradesExactIn({
-                    currencyAmountIn,
-                    currencyOut,
-                    maximumSlippage,
-                    pairs: commonPairsBetweenCurrenyInAndOut,
-                    maxHops: { maxNumResults, maxHops },
-                });
-                bestTrade = tradeRoutes.at(0);
-            }
-            catch (error) {
-                // tslint:disable-next-line:no-console
-            }
-            return bestTrade;
-        });
+    static async bestTradeExactIn({ currencyAmountIn, currencyOut, maximumSlippage, maxHops: { maxNumResults = 3, maxHops = 3 } = {}, platform, }) {
+        let bestTrade;
+        try {
+            // Fetch the commons pairs between A and B
+            const commonPairsBetweenCurrenyInAndOut = await (0, pairs_1.getAllCommonUniswapV2Pairs)({
+                currencyA: currencyAmountIn.currency,
+                currencyB: currencyOut,
+                platform,
+            });
+            // Compare and sort all routes from A to B
+            const tradeRoutes = UniswapV2Trade.computeTradesExactIn({
+                currencyAmountIn,
+                currencyOut,
+                maximumSlippage,
+                pairs: commonPairsBetweenCurrenyInAndOut,
+                maxHops: { maxNumResults, maxHops },
+            });
+            bestTrade = tradeRoutes.at(0);
+        }
+        catch (error) {
+            // tslint:disable-next-line:no-console
+        }
+        return bestTrade;
     }
     /**
      * similar to the `bestTradeExactIn` method, but instead targets a fixed output amount
@@ -144,32 +142,30 @@ class UniswapV2Trade extends trade_1.TradeWithSwapTransaction {
      * the amount in among multiple routes.
      * @param {UniswapV2TradeBestTradeExactOutParams} params the parameters to use
      */
-    static bestTradeExactOut({ currencyIn, currencyAmountOut, maximumSlippage, maxHops: { maxNumResults = 3, maxHops = 3 } = {}, platform, }) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            let bestTrade;
-            try {
-                // Fetch the commons pairs between A and B
-                const commonPairsBetweenCurrenyInAndOut = yield (0, pairs_1.getAllCommonUniswapV2Pairs)({
-                    currencyA: currencyIn,
-                    currencyB: currencyAmountOut.currency,
-                    platform,
-                });
-                // Compare and sort all routes from A to B
-                const tradeRoutes = UniswapV2Trade.computeTradesExactOut({
-                    currencyAmountOut,
-                    currencyIn,
-                    maximumSlippage,
-                    pairs: commonPairsBetweenCurrenyInAndOut,
-                    maxHops: { maxNumResults, maxHops },
-                });
-                // Return the best route
-                bestTrade = tradeRoutes.at(0);
-            }
-            catch (error) {
-                // tslint:disable-next-line:no-console
-            }
-            return bestTrade;
-        });
+    static async bestTradeExactOut({ currencyIn, currencyAmountOut, maximumSlippage, maxHops: { maxNumResults = 3, maxHops = 3 } = {}, platform, }) {
+        let bestTrade;
+        try {
+            // Fetch the commons pairs between A and B
+            const commonPairsBetweenCurrenyInAndOut = await (0, pairs_1.getAllCommonUniswapV2Pairs)({
+                currencyA: currencyIn,
+                currencyB: currencyAmountOut.currency,
+                platform,
+            });
+            // Compare and sort all routes from A to B
+            const tradeRoutes = UniswapV2Trade.computeTradesExactOut({
+                currencyAmountOut,
+                currencyIn,
+                maximumSlippage,
+                pairs: commonPairsBetweenCurrenyInAndOut,
+                maxHops: { maxNumResults, maxHops },
+            });
+            // Return the best route
+            bestTrade = tradeRoutes.at(0);
+        }
+        catch (error) {
+            // tslint:disable-next-line:no-console
+        }
+        return bestTrade;
     }
     /**
      * Given a list of pairs, and a fixed amount in, returns the top `maxNumResults` trades that go from an input token
@@ -182,13 +178,12 @@ class UniswapV2Trade extends trade_1.TradeWithSwapTransaction {
     static computeTradesExactIn({ currencyAmountIn, currencyOut, maximumSlippage, pairs, maxHops: { maxNumResults = 3, maxHops = 3 } = {}, 
     // used in recursion.
     currentPairs = [], originalAmountIn = currencyAmountIn, bestTrades = [], }) {
-        var _a;
         (0, tiny_invariant_1.default)(maximumSlippage.greaterThan('0'), 'MAXIMUM_SLIPPAGE');
         (0, tiny_invariant_1.default)(pairs && pairs.length > 0, 'PAIRS');
         (0, tiny_invariant_1.default)(maxHops > 0, 'MAX_HOPS');
         (0, tiny_invariant_1.default)(originalAmountIn === currencyAmountIn || currentPairs.length > 0, 'INVALID_RECURSION');
         // Validate chain ID
-        const chainId = (_a = currencyAmountIn.currency.chainId) !== null && _a !== void 0 ? _a : currencyOut.chainId;
+        const chainId = currencyAmountIn.currency.chainId ?? currencyOut.chainId;
         (0, tiny_invariant_1.default)(chainId !== undefined, 'CHAIN_ID');
         const amountIn = (0, utils_2.wrappedAmount)(currencyAmountIn, chainId);
         const tokenOut = (0, utils_2.wrappedCurrency)(currencyOut, chainId);
@@ -247,14 +242,13 @@ class UniswapV2Trade extends trade_1.TradeWithSwapTransaction {
     static computeTradesExactOut({ currencyAmountOut, currencyIn, maximumSlippage, pairs, maxHops: { maxNumResults = 3, maxHops = 3 } = {}, 
     // used in recursion.
     currentPairs = [], originalAmountOut = currencyAmountOut, bestTrades = [], }) {
-        var _a;
         // Validate params
         (0, tiny_invariant_1.default)(maximumSlippage.greaterThan('0'), 'MAXIMUM_SLIPPAGE');
         (0, tiny_invariant_1.default)(pairs && pairs.length > 0, 'PAIRS');
         (0, tiny_invariant_1.default)(maxHops > 0, 'MAX_HOPS');
         (0, tiny_invariant_1.default)(originalAmountOut === currencyAmountOut || currentPairs.length > 0, 'INVALID_RECURSION');
         // Validate chain ID
-        const chainId = (_a = currencyAmountOut.currency.chainId) !== null && _a !== void 0 ? _a : currencyIn.chainId;
+        const chainId = currencyAmountOut.currency.chainId ?? currencyIn.chainId;
         (0, tiny_invariant_1.default)(chainId !== undefined, 'CHAIN_ID');
         const amountOut = (0, utils_2.wrappedAmount)(currencyAmountOut, chainId);
         const tokenIn = (0, utils_2.wrappedCurrency)(currencyIn, chainId);
@@ -301,65 +295,65 @@ class UniswapV2Trade extends trade_1.TradeWithSwapTransaction {
         }
         return bestTrades;
     }
-    swapTransaction(options) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            const nativeCurrency = currency_1.Currency.getNative(this.chainId);
-            const etherIn = this.inputAmount.currency === nativeCurrency;
-            const etherOut = this.outputAmount.currency === nativeCurrency;
-            // the router does not support both ether in and out
-            (0, tiny_invariant_1.default)(!(etherIn && etherOut), 'ETHER_IN_OUT');
-            (0, tiny_invariant_1.default)(options.ttl && options.ttl > 0, 'TTL');
-            const routerAddress = this.platform.routerAddress[this.chainId];
-            (0, tiny_invariant_1.default)(!!routerAddress, 'ROUTER_ADDRESS_IN_CHAIN');
-            const to = (0, utils_1.validateAndParseAddress)(options.recipient);
-            const amountIn = (0, utilts_1.toHex)(this.maximumAmountIn());
-            const amountOut = (0, utilts_1.toHex)(this.minimumAmountOut());
-            const path = this.route.path.map((token) => token.address);
-            const deadline = `0x${(Math.floor(new Date().getTime() / 1000) + options.ttl).toString(16)}`;
-            const override = { value: utilts_1.ZERO_HEX, gasLimit: undefined };
-            if (routerAddress === routable_platform_1.UniswapV2RoutablePlatform.DFYN.routerAddress[this.chainId])
-                override.gasLimit = bignumber_1.BigNumber.from(DFYN_GAS_LIMIT);
-            let methodName;
-            let args;
-            switch (this.tradeType) {
-                case constants_1.TradeType.EXACT_INPUT:
-                    if (etherIn) {
-                        methodName = 'swapExactETHForTokens';
-                        // (uint amountOutMin, address[] calldata path, address to, uint deadline)
-                        args = [amountOut, path, to, deadline];
-                        override.value = amountIn;
-                    }
-                    else if (etherOut) {
-                        methodName = 'swapExactTokensForETH';
-                        // (uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
-                        args = [amountIn, amountOut, path, to, deadline];
-                    }
-                    else {
-                        methodName = 'swapExactTokensForTokens';
-                        // (uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
-                        args = [amountIn, amountOut, path, to, deadline];
-                    }
-                    break;
-                case constants_1.TradeType.EXACT_OUTPUT:
-                    if (etherIn) {
-                        methodName = 'swapETHForExactTokens';
-                        // (uint amountOut, address[] calldata path, address to, uint deadline)
-                        args = [amountOut, path, to, deadline];
-                        override.value = amountIn;
-                    }
-                    else if (etherOut) {
-                        methodName = 'swapTokensForExactETH';
-                        // (uint amountOut, uint amountInMax, address[] calldata path, address to, uint deadline)
-                        args = [amountOut, amountIn, path, to, deadline];
-                    }
-                    else {
-                        methodName = 'swapTokensForExactTokens';
-                        // (uint amountOut, uint amountInMax, address[] calldata path, address to, uint deadline)
-                        args = [amountOut, amountIn, path, to, deadline];
-                    }
-                    break;
-            }
-            return new contracts_1.Contract(routerAddress, router_json_1.default).populateTransaction[methodName](...args, Object.assign({}, override));
+    async swapTransaction(options) {
+        const nativeCurrency = currency_1.Currency.getNative(this.chainId);
+        const etherIn = this.inputAmount.currency === nativeCurrency;
+        const etherOut = this.outputAmount.currency === nativeCurrency;
+        // the router does not support both ether in and out
+        (0, tiny_invariant_1.default)(!(etherIn && etherOut), 'ETHER_IN_OUT');
+        (0, tiny_invariant_1.default)(options.ttl && options.ttl > 0, 'TTL');
+        const routerAddress = this.platform.routerAddress[this.chainId];
+        (0, tiny_invariant_1.default)(!!routerAddress, 'ROUTER_ADDRESS_IN_CHAIN');
+        const to = (0, utils_1.validateAndParseAddress)(options.recipient);
+        const amountIn = (0, utilts_1.toHex)(this.maximumAmountIn());
+        const amountOut = (0, utilts_1.toHex)(this.minimumAmountOut());
+        const path = this.route.path.map((token) => token.address);
+        const deadline = `0x${(Math.floor(new Date().getTime() / 1000) + options.ttl).toString(16)}`;
+        const override = { value: utilts_1.ZERO_HEX, gasLimit: undefined };
+        if (routerAddress === routable_platform_1.UniswapV2RoutablePlatform.DFYN.routerAddress[this.chainId])
+            override.gasLimit = bignumber_1.BigNumber.from(DFYN_GAS_LIMIT);
+        let methodName;
+        let args;
+        switch (this.tradeType) {
+            case constants_1.TradeType.EXACT_INPUT:
+                if (etherIn) {
+                    methodName = 'swapExactETHForTokens';
+                    // (uint amountOutMin, address[] calldata path, address to, uint deadline)
+                    args = [amountOut, path, to, deadline];
+                    override.value = amountIn;
+                }
+                else if (etherOut) {
+                    methodName = 'swapExactTokensForETH';
+                    // (uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
+                    args = [amountIn, amountOut, path, to, deadline];
+                }
+                else {
+                    methodName = 'swapExactTokensForTokens';
+                    // (uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
+                    args = [amountIn, amountOut, path, to, deadline];
+                }
+                break;
+            case constants_1.TradeType.EXACT_OUTPUT:
+                if (etherIn) {
+                    methodName = 'swapETHForExactTokens';
+                    // (uint amountOut, address[] calldata path, address to, uint deadline)
+                    args = [amountOut, path, to, deadline];
+                    override.value = amountIn;
+                }
+                else if (etherOut) {
+                    methodName = 'swapTokensForExactETH';
+                    // (uint amountOut, uint amountInMax, address[] calldata path, address to, uint deadline)
+                    args = [amountOut, amountIn, path, to, deadline];
+                }
+                else {
+                    methodName = 'swapTokensForExactTokens';
+                    // (uint amountOut, uint amountInMax, address[] calldata path, address to, uint deadline)
+                    args = [amountOut, amountIn, path, to, deadline];
+                }
+                break;
+        }
+        return new contracts_1.Contract(routerAddress, router_json_1.default).populateTransaction[methodName](...args, {
+            ...override,
         });
     }
     get route() {

@@ -32,18 +32,44 @@ const INITIAL_CACHE_STATE = {
     [constants_2.ChainId.ZK_SYNC_ERA_TESTNET]: {},
 };
 let PAIR_ADDRESS_CACHE = {
-    [routable_platform_1.UniswapV2RoutablePlatform.SWAPR.name]: Object.assign({}, INITIAL_CACHE_STATE),
-    [routable_platform_1.UniswapV2RoutablePlatform.SUSHISWAP.name]: Object.assign({}, INITIAL_CACHE_STATE),
-    [routable_platform_1.UniswapV2RoutablePlatform.UNISWAP.name]: Object.assign({}, INITIAL_CACHE_STATE),
-    [routable_platform_1.UniswapV2RoutablePlatform.HONEYSWAP.name]: Object.assign({}, INITIAL_CACHE_STATE),
-    [routable_platform_1.UniswapV2RoutablePlatform.BAOSWAP.name]: Object.assign({}, INITIAL_CACHE_STATE),
-    [routable_platform_1.UniswapV2RoutablePlatform.LEVINSWAP.name]: Object.assign({}, INITIAL_CACHE_STATE),
-    [routable_platform_1.UniswapV2RoutablePlatform.QUICKSWAP.name]: Object.assign({}, INITIAL_CACHE_STATE),
-    [routable_platform_1.UniswapV2RoutablePlatform.PANCAKESWAP.name]: Object.assign({}, INITIAL_CACHE_STATE),
-    [routable_platform_1.UniswapV2RoutablePlatform.DFYN.name]: Object.assign({}, INITIAL_CACHE_STATE),
-    [routable_platform_1.UniswapV2RoutablePlatform.BISWAP.name]: Object.assign({}, INITIAL_CACHE_STATE),
+    [routable_platform_1.UniswapV2RoutablePlatform.SWAPR.name]: {
+        ...INITIAL_CACHE_STATE,
+    },
+    [routable_platform_1.UniswapV2RoutablePlatform.SUSHISWAP.name]: {
+        ...INITIAL_CACHE_STATE,
+    },
+    [routable_platform_1.UniswapV2RoutablePlatform.UNISWAP.name]: {
+        ...INITIAL_CACHE_STATE,
+    },
+    [routable_platform_1.UniswapV2RoutablePlatform.HONEYSWAP.name]: {
+        ...INITIAL_CACHE_STATE,
+    },
+    [routable_platform_1.UniswapV2RoutablePlatform.BAOSWAP.name]: {
+        ...INITIAL_CACHE_STATE,
+    },
+    [routable_platform_1.UniswapV2RoutablePlatform.LEVINSWAP.name]: {
+        ...INITIAL_CACHE_STATE,
+    },
+    [routable_platform_1.UniswapV2RoutablePlatform.QUICKSWAP.name]: {
+        ...INITIAL_CACHE_STATE,
+    },
+    [routable_platform_1.UniswapV2RoutablePlatform.PANCAKESWAP.name]: {
+        ...INITIAL_CACHE_STATE,
+    },
+    [routable_platform_1.UniswapV2RoutablePlatform.DFYN.name]: {
+        ...INITIAL_CACHE_STATE,
+    },
+    [routable_platform_1.UniswapV2RoutablePlatform.BISWAP.name]: {
+        ...INITIAL_CACHE_STATE,
+    },
 };
 class Pair {
+    liquidityToken;
+    tokenAmounts;
+    swapFee = constants_1.defaultSwapFee;
+    protocolFeeDenominator = constants_1.defaultProtocolFeeDenominator;
+    platform;
+    liquidityMiningCampaigns;
     /**
      * Returns true if the two pairs are equivalent, i.e. have the same address (calculated using create2).
      * @param other other pair to compare
@@ -56,18 +82,27 @@ class Pair {
         return this.liquidityToken.address === other.liquidityToken.address;
     }
     static getAddress(tokenA, tokenB, platform = routable_platform_1.UniswapV2RoutablePlatform.SWAPR) {
-        var _a, _b, _c, _d, _e;
         const tokens = tokenA.sortsBefore(tokenB) ? [tokenA, tokenB] : [tokenB, tokenA]; // does safety checks
         const chainId = tokenA.chainId;
         (0, tiny_invariant_1.default)(platform.supportsChain(chainId), 'INVALID_PLATFORM_CHAIN_ID');
-        if (((_c = (_b = (_a = PAIR_ADDRESS_CACHE === null || PAIR_ADDRESS_CACHE === void 0 ? void 0 : PAIR_ADDRESS_CACHE[platform.name]) === null || _a === void 0 ? void 0 : _a[chainId]) === null || _b === void 0 ? void 0 : _b[tokens[0].address]) === null || _c === void 0 ? void 0 : _c[tokens[1].address]) === undefined) {
-            PAIR_ADDRESS_CACHE = Object.assign(Object.assign({}, PAIR_ADDRESS_CACHE), { [platform.name]: Object.assign(Object.assign({}, PAIR_ADDRESS_CACHE[platform.name]), { [chainId]: Object.assign(Object.assign({}, PAIR_ADDRESS_CACHE[platform.name][chainId]), { [tokens[0].address]: Object.assign(Object.assign({}, (_e = (_d = PAIR_ADDRESS_CACHE === null || PAIR_ADDRESS_CACHE === void 0 ? void 0 : PAIR_ADDRESS_CACHE[platform.name]) === null || _d === void 0 ? void 0 : _d[chainId]) === null || _e === void 0 ? void 0 : _e[tokens[0].address]), { [tokens[1].address]: (0, address_1.getCreate2Address)(platform.factoryAddress[chainId], (0, solidity_1.keccak256)(['bytes'], [(0, solidity_1.pack)(['address', 'address'], [tokens[0].address, tokens[1].address])]), platform.initCodeHash) }) }) }) });
+        if (PAIR_ADDRESS_CACHE?.[platform.name]?.[chainId]?.[tokens[0].address]?.[tokens[1].address] === undefined) {
+            PAIR_ADDRESS_CACHE = {
+                ...PAIR_ADDRESS_CACHE,
+                [platform.name]: {
+                    ...PAIR_ADDRESS_CACHE[platform.name],
+                    [chainId]: {
+                        ...PAIR_ADDRESS_CACHE[platform.name][chainId],
+                        [tokens[0].address]: {
+                            ...PAIR_ADDRESS_CACHE?.[platform.name]?.[chainId]?.[tokens[0].address],
+                            [tokens[1].address]: (0, address_1.getCreate2Address)(platform.factoryAddress[chainId], (0, solidity_1.keccak256)(['bytes'], [(0, solidity_1.pack)(['address', 'address'], [tokens[0].address, tokens[1].address])]), platform.initCodeHash),
+                        },
+                    },
+                },
+            };
         }
         return PAIR_ADDRESS_CACHE[platform.name][chainId][tokens[0].address][tokens[1].address];
     }
     constructor(tokenAmountA, tokenAmountB, swapFee, protocolFeeDenominator, platform = routable_platform_1.UniswapV2RoutablePlatform.SWAPR, liquidityMiningCampaigns = []) {
-        this.swapFee = constants_1.defaultSwapFee;
-        this.protocolFeeDenominator = constants_1.defaultProtocolFeeDenominator;
         (0, tiny_invariant_1.default)(tokenAmountA.token.chainId === tokenAmountB.token.chainId, 'CHAIN_ID');
         const tokenAmounts = tokenAmountA.token.sortsBefore(tokenAmountB.token) // does safety checks
             ? [tokenAmountA, tokenAmountB]

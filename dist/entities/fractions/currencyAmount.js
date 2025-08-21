@@ -13,6 +13,7 @@ const token_1 = require("../token");
 const fraction_1 = require("./fraction");
 const Big = (0, toformat_1.default)(big_js_1.default);
 class CurrencyAmount extends fraction_1.Fraction {
+    currency;
     /**
      * Helper that calls the constructor with the ETHER currency
      * @param amount ether amount in wei

@@ -3,8 +3,9 @@ import {
   Ether as UniswapEther,
   NativeCurrency as UniswapNativeCurrency,
   Token as UniswapToken,
+  ChainId,
 } from '@uniswap/sdk-core'
-import { ChainId, WRAPPED_NATIVE_CURRENCY } from '@uniswap/smart-order-router'
+import { WRAPPED_NATIVE_CURRENCY } from '@uniswap/smart-order-router'
 import invariant from 'tiny-invariant'
 
 function isMatic(chainId: number): chainId is ChainId.POLYGON | ChainId.POLYGON_MUMBAI {

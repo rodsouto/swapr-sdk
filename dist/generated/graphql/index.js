@@ -809,7 +809,7 @@ const defaultWrapper = (action, _operationName, _operationType) => action();
 function getSdk(client, withWrapper = defaultWrapper) {
     return {
         GetAllCommonPairsBetweenTokenAAndTokenB(variables, requestHeaders) {
-            return withWrapper((wrappedRequestHeaders) => client.request(exports.GetAllCommonPairsBetweenTokenAAndTokenBDocument, variables, Object.assign(Object.assign({}, requestHeaders), wrappedRequestHeaders)), 'GetAllCommonPairsBetweenTokenAAndTokenB', 'query');
+            return withWrapper((wrappedRequestHeaders) => client.request(exports.GetAllCommonPairsBetweenTokenAAndTokenBDocument, variables, { ...requestHeaders, ...wrappedRequestHeaders }), 'GetAllCommonPairsBetweenTokenAAndTokenB', 'query');
         }
     };
 }

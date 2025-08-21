@@ -6,6 +6,11 @@ const tiny_invariant_1 = tslib_1.__importDefault(require("tiny-invariant"));
 const fractions_1 = require("./fractions");
 const token_1 = require("./token");
 class Breakdown {
+    chainId;
+    platforms;
+    input;
+    output;
+    midPrice;
     constructor(chainId, platforms, input, output, midPrice) {
         (0, tiny_invariant_1.default)(platforms.length > 0, 'Missing routable platform');
         (0, tiny_invariant_1.default)(platforms

@@ -1,5 +1,4 @@
 "use strict";
-var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.approveAddressUrl = exports.generateApiRequestUrl = exports.RequestType = void 0;
 const constants_1 = require("../constants");
@@ -29,13 +28,12 @@ var ApiVersion;
 /**
  * @see https://portal.1inch.dev/documentation/swap/introduction
  */
-const API_BASE_URL = (_a = process.env.REACT_APP_ONEINCH_BASE_API_URL) !== null && _a !== void 0 ? _a : 'https://api.1inch.dev/';
+const API_BASE_URL = process.env.REACT_APP_ONEINCH_BASE_API_URL ?? 'https://api.1inch.dev/';
 const ONE_INCH_REFFERER_FEE = '0'; //MIN-> 0 MAX-> 3
 const getApiUrl = ({ apiName, apiVersion, chainId, subApiName = '' }) => `${API_BASE_URL}${apiName}${subApiName}${apiVersion}/${chainId}`;
 function generateApiRequestUrl({ methodName, queryParams, chainId }) {
-    var _a;
     if (constants_1.REFFERER_ADDRESS_CHAIN_MAPPING[chainId]) {
-        queryParams.referrerAddress = (_a = constants_1.REFFERER_ADDRESS_CHAIN_MAPPING[chainId]) !== null && _a !== void 0 ? _a : '';
+        queryParams.referrerAddress = constants_1.REFFERER_ADDRESS_CHAIN_MAPPING[chainId] ?? '';
         queryParams.fee = ONE_INCH_REFFERER_FEE;
     }
     return (getApiUrl({ apiName: ApiName.SWAP, apiVersion: ApiVersion.SWAP, chainId }) +

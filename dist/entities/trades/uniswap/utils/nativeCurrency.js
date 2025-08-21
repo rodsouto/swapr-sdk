@@ -6,7 +6,7 @@ const sdk_core_1 = require("@uniswap/sdk-core");
 const smart_order_router_1 = require("@uniswap/smart-order-router");
 const tiny_invariant_1 = tslib_1.__importDefault(require("tiny-invariant"));
 function isMatic(chainId) {
-    return chainId === smart_order_router_1.ChainId.POLYGON_MUMBAI || chainId === smart_order_router_1.ChainId.POLYGON;
+    return chainId === sdk_core_1.ChainId.POLYGON_MUMBAI || chainId === sdk_core_1.ChainId.POLYGON;
 }
 class MaticNativeCurrency extends sdk_core_1.NativeCurrency {
     equals(other) {

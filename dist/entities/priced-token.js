@@ -8,6 +8,7 @@ const token_1 = require("./token");
  * Represents an ERC20 token and its price, expressed in any given currency.
  */
 class PricedToken extends token_1.Token {
+    price;
     constructor(chainId, address, decimals, price, symbol, name) {
         (0, tiny_invariant_1.default)(price.baseCurrency.symbol === symbol && price.baseCurrency.decimals === decimals, 'TOKEN');
         super(chainId, address, decimals, symbol, name);

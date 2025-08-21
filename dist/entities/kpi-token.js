@@ -10,6 +10,9 @@ const fractions_1 = require("../entities/fractions");
 const token_1 = require("../entities/token");
 const priced_token_1 = require("./priced-token");
 class KpiToken extends priced_token_1.PricedToken {
+    kpiId;
+    totalSupply;
+    collateral;
     constructor(chainId, address, totalSupply, collateral, kpiId, symbol, name) {
         const collateralTokenNativeCurrency = collateral.nativeCurrencyAmount;
         const kpiTokenPrice = new decimal_js_light_1.default(collateralTokenNativeCurrency.raw.toString()).dividedBy(totalSupply.toString());

@@ -40,6 +40,146 @@ const UNISWAP_ROUTER_ADDRESS = '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D';
  * A Uniswap V2 platform to which Swapr can route through.
  */
 class UniswapV2RoutablePlatform extends BaseRoutablePlatform_1.BaseRoutablePlatform {
+    factoryAddress;
+    routerAddress;
+    subgraphEndpoint;
+    initCodeHash;
+    defaultSwapFee;
+    static BAOSWAP = new UniswapV2RoutablePlatform({
+        chainIds: [constants_2.ChainId.XDAI],
+        name: 'Baoswap',
+        factoryAddress: {
+            [constants_2.ChainId.XDAI]: BAOSWAP_FACTORY_ADDRESS,
+        },
+        routerAddress: {
+            [constants_2.ChainId.XDAI]: BAOSWAP_ROUTER_ADDRESS,
+        },
+        initCodeHash: '0x0bae3ead48c325ce433426d2e8e6b07dac10835baec21e163760682ea3d3520d',
+        defaultSwapFee: constants_2._30,
+    });
+    /**
+     * @see https://docs.biswap.org/biswap/general-information/biswap-smart-contracts for smart contract info
+     * @see https://bscscan.com/address/0x858E3312ed3A876947EA49d572A7C42DE08af7EE#readContract (Factor address) for INIT_CODE_HASH
+     * @see https://github.com/biswap-org/core/blob/78a67b2bf9dccc551adf91b0529aec6df9eb9b27/contracts/BiswapPair.sol#L29 for swapFee default value
+     * @see https://thegraph.com/hosted-service/subgraph/unchase/biswap for Subraph Endpoint
+     */
+    static BISWAP = new UniswapV2RoutablePlatform({
+        chainIds: [constants_2.ChainId.BSC_MAINNET],
+        name: 'Biswap',
+        factoryAddress: BISWAP_FACTORY_ADDRESS,
+        routerAddress: BISWAP_ROUTER_ADDRESS,
+        initCodeHash: '0xfea293c909d87cd4153593f077b76bb7e94340200f4ee84211ae8e4f9bd7ffdf',
+        defaultSwapFee: constants_2.TEN,
+        subgraphEndpoint: {
+            [constants_2.ChainId.BSC_MAINNET]: 'https://api.thegraph.com/subgraphs/name/unchase/biswap',
+        },
+    });
+    static DFYN = new UniswapV2RoutablePlatform({
+        chainIds: [constants_2.ChainId.POLYGON],
+        name: 'DFYN',
+        factoryAddress: {
+            [constants_2.ChainId.POLYGON]: DFYN_FACTORY_ADDRESS,
+        },
+        routerAddress: {
+            [constants_2.ChainId.POLYGON]: DFYN_ROUTER_ADDRESS,
+        },
+        initCodeHash: '0xf187ed688403aa4f7acfada758d8d53698753b998a3071b06f1b777f4330eaf3',
+        defaultSwapFee: constants_2._30,
+    });
+    static HONEYSWAP = new UniswapV2RoutablePlatform({
+        chainIds: [constants_2.ChainId.XDAI],
+        name: 'Honeyswap',
+        factoryAddress: {
+            [constants_2.ChainId.XDAI]: HONEYSWAP_FACTORY_ADDRESS,
+        },
+        routerAddress: {
+            [constants_2.ChainId.XDAI]: HONEYSWAP_ROUTER_ADDRESS,
+        },
+        initCodeHash: '0x3f88503e8580ab941773b59034fb4b2a63e86dbc031b3633a925533ad3ed2b93',
+        defaultSwapFee: constants_2._30,
+    });
+    static LEVINSWAP = new UniswapV2RoutablePlatform({
+        chainIds: [constants_2.ChainId.XDAI],
+        name: 'Levinswap',
+        factoryAddress: {
+            [constants_2.ChainId.XDAI]: LEVINSWAP_FACTORY_ADDRESS,
+        },
+        routerAddress: {
+            [constants_2.ChainId.XDAI]: LEVINSWAP_ROUTER_ADDRESS,
+        },
+        initCodeHash: '0x4955fd9146732ca7a64d43c7a8d65fe6db1acca27e9c5b3bee7c3abe5849f441',
+        defaultSwapFee: constants_2._30,
+    });
+    static PANCAKESWAP = new UniswapV2RoutablePlatform({
+        chainIds: [constants_2.ChainId.BSC_MAINNET],
+        name: 'Pancakeswap',
+        factoryAddress: PANCAKESWAP_FACTORY_ADDRESS,
+        routerAddress: PANCAKESWAP_ROUTER_ADDRESS,
+        initCodeHash: '0x00fb7f630766e6a796048ea87d01acd3068e8ff67d078148a3fa3f4a84f69bd5',
+        defaultSwapFee: constants_2._25,
+        subgraphEndpoint: {},
+    });
+    static QUICKSWAP = new UniswapV2RoutablePlatform({
+        chainIds: [constants_2.ChainId.POLYGON],
+        name: 'Quickswap',
+        factoryAddress: {
+            [constants_2.ChainId.POLYGON]: QUICKSWAP_FACTORY_ADDRESS,
+        },
+        routerAddress: {
+            [constants_2.ChainId.POLYGON]: QUICKSWAP_ROUTER_ADDRESS,
+        },
+        initCodeHash: '0x96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f',
+        defaultSwapFee: constants_2._30,
+    });
+    static SUSHISWAP = new UniswapV2RoutablePlatform({
+        chainIds: [constants_2.ChainId.MAINNET, constants_2.ChainId.RINKEBY, constants_2.ChainId.ARBITRUM_ONE, constants_2.ChainId.POLYGON, constants_2.ChainId.BSC_MAINNET],
+        name: 'Sushiswap V2',
+        factoryAddress: SUSHISWAP_FACTORY_ADDRESS,
+        routerAddress: SUSHISWAP_ROUTER_ADDRESS,
+        initCodeHash: '0xe18a34eb0e04b04f7a0ac29a6e80748dca96319b42c54d679cb821dca90c6303',
+        defaultSwapFee: constants_2._30,
+        subgraphEndpoint: {},
+    });
+    static SWAPR = new UniswapV2RoutablePlatform({
+        chainIds: [
+            constants_2.ChainId.MAINNET,
+            constants_2.ChainId.RINKEBY,
+            constants_2.ChainId.ARBITRUM_ONE,
+            constants_2.ChainId.ARBITRUM_RINKEBY,
+            constants_2.ChainId.ARBITRUM_GOERLI,
+            constants_2.ChainId.XDAI,
+            constants_2.ChainId.GOERLI,
+        ],
+        name: 'Swapr',
+        factoryAddress: constants_2.FACTORY_ADDRESS,
+        routerAddress: constants_2.ROUTER_ADDRESS,
+        initCodeHash: constants_2.INIT_CODE_HASH,
+        defaultSwapFee: constants_2.defaultSwapFee,
+        subgraphEndpoint: {
+            [constants_2.ChainId.MAINNET]: 'https://api.thegraph.com/subgraphs/name/dxgraphs/swapr-mainnet-v2',
+            [constants_2.ChainId.ARBITRUM_ONE]: 'https://api.thegraph.com/subgraphs/name/dxgraphs/swapr-arbitrum-one-v3',
+            [constants_2.ChainId.XDAI]: 'https://api.thegraph.com/subgraphs/name/dxgraphs/swapr-xdai-v2',
+            [constants_2.ChainId.RINKEBY]: 'https://api.thegraph.com/subgraphs/name/dxgraphs/swapr-rinkeby',
+            [constants_2.ChainId.ARBITRUM_RINKEBY]: 'https://api.thegraph.com/subgraphs/name/dxgraphs/swapr-arbitrum-rinkeby-v2',
+        },
+    });
+    static UNISWAP = new UniswapV2RoutablePlatform({
+        chainIds: [constants_2.ChainId.MAINNET, constants_2.ChainId.RINKEBY],
+        name: 'Uniswap v2',
+        factoryAddress: {
+            [constants_2.ChainId.MAINNET]: UNISWAP_FACTORY_ADDRESS,
+            [constants_2.ChainId.RINKEBY]: UNISWAP_FACTORY_ADDRESS,
+        },
+        routerAddress: {
+            [constants_2.ChainId.MAINNET]: UNISWAP_ROUTER_ADDRESS,
+            [constants_2.ChainId.RINKEBY]: UNISWAP_ROUTER_ADDRESS,
+        },
+        initCodeHash: '0x96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f',
+        defaultSwapFee: constants_2._30,
+        subgraphEndpoint: {
+            [constants_2.ChainId.MAINNET]: 'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2',
+        },
+    });
     /**
      * Create a new UniswapV2RoutablePlatform instance.
      */
@@ -63,139 +203,4 @@ class UniswapV2RoutablePlatform extends BaseRoutablePlatform_1.BaseRoutablePlatf
     }
 }
 exports.UniswapV2RoutablePlatform = UniswapV2RoutablePlatform;
-UniswapV2RoutablePlatform.BAOSWAP = new UniswapV2RoutablePlatform({
-    chainIds: [constants_2.ChainId.XDAI],
-    name: 'Baoswap',
-    factoryAddress: {
-        [constants_2.ChainId.XDAI]: BAOSWAP_FACTORY_ADDRESS,
-    },
-    routerAddress: {
-        [constants_2.ChainId.XDAI]: BAOSWAP_ROUTER_ADDRESS,
-    },
-    initCodeHash: '0x0bae3ead48c325ce433426d2e8e6b07dac10835baec21e163760682ea3d3520d',
-    defaultSwapFee: constants_2._30,
-});
-/**
- * @see https://docs.biswap.org/biswap/general-information/biswap-smart-contracts for smart contract info
- * @see https://bscscan.com/address/0x858E3312ed3A876947EA49d572A7C42DE08af7EE#readContract (Factor address) for INIT_CODE_HASH
- * @see https://github.com/biswap-org/core/blob/78a67b2bf9dccc551adf91b0529aec6df9eb9b27/contracts/BiswapPair.sol#L29 for swapFee default value
- * @see https://thegraph.com/hosted-service/subgraph/unchase/biswap for Subraph Endpoint
- */
-UniswapV2RoutablePlatform.BISWAP = new UniswapV2RoutablePlatform({
-    chainIds: [constants_2.ChainId.BSC_MAINNET],
-    name: 'Biswap',
-    factoryAddress: BISWAP_FACTORY_ADDRESS,
-    routerAddress: BISWAP_ROUTER_ADDRESS,
-    initCodeHash: '0xfea293c909d87cd4153593f077b76bb7e94340200f4ee84211ae8e4f9bd7ffdf',
-    defaultSwapFee: constants_2.TEN,
-    subgraphEndpoint: {
-        [constants_2.ChainId.BSC_MAINNET]: 'https://api.thegraph.com/subgraphs/name/unchase/biswap',
-    },
-});
-UniswapV2RoutablePlatform.DFYN = new UniswapV2RoutablePlatform({
-    chainIds: [constants_2.ChainId.POLYGON],
-    name: 'DFYN',
-    factoryAddress: {
-        [constants_2.ChainId.POLYGON]: DFYN_FACTORY_ADDRESS,
-    },
-    routerAddress: {
-        [constants_2.ChainId.POLYGON]: DFYN_ROUTER_ADDRESS,
-    },
-    initCodeHash: '0xf187ed688403aa4f7acfada758d8d53698753b998a3071b06f1b777f4330eaf3',
-    defaultSwapFee: constants_2._30,
-});
-UniswapV2RoutablePlatform.HONEYSWAP = new UniswapV2RoutablePlatform({
-    chainIds: [constants_2.ChainId.XDAI],
-    name: 'Honeyswap',
-    factoryAddress: {
-        [constants_2.ChainId.XDAI]: HONEYSWAP_FACTORY_ADDRESS,
-    },
-    routerAddress: {
-        [constants_2.ChainId.XDAI]: HONEYSWAP_ROUTER_ADDRESS,
-    },
-    initCodeHash: '0x3f88503e8580ab941773b59034fb4b2a63e86dbc031b3633a925533ad3ed2b93',
-    defaultSwapFee: constants_2._30,
-});
-UniswapV2RoutablePlatform.LEVINSWAP = new UniswapV2RoutablePlatform({
-    chainIds: [constants_2.ChainId.XDAI],
-    name: 'Levinswap',
-    factoryAddress: {
-        [constants_2.ChainId.XDAI]: LEVINSWAP_FACTORY_ADDRESS,
-    },
-    routerAddress: {
-        [constants_2.ChainId.XDAI]: LEVINSWAP_ROUTER_ADDRESS,
-    },
-    initCodeHash: '0x4955fd9146732ca7a64d43c7a8d65fe6db1acca27e9c5b3bee7c3abe5849f441',
-    defaultSwapFee: constants_2._30,
-});
-UniswapV2RoutablePlatform.PANCAKESWAP = new UniswapV2RoutablePlatform({
-    chainIds: [constants_2.ChainId.BSC_MAINNET],
-    name: 'Pancakeswap',
-    factoryAddress: PANCAKESWAP_FACTORY_ADDRESS,
-    routerAddress: PANCAKESWAP_ROUTER_ADDRESS,
-    initCodeHash: '0x00fb7f630766e6a796048ea87d01acd3068e8ff67d078148a3fa3f4a84f69bd5',
-    defaultSwapFee: constants_2._25,
-    subgraphEndpoint: {},
-});
-UniswapV2RoutablePlatform.QUICKSWAP = new UniswapV2RoutablePlatform({
-    chainIds: [constants_2.ChainId.POLYGON],
-    name: 'Quickswap',
-    factoryAddress: {
-        [constants_2.ChainId.POLYGON]: QUICKSWAP_FACTORY_ADDRESS,
-    },
-    routerAddress: {
-        [constants_2.ChainId.POLYGON]: QUICKSWAP_ROUTER_ADDRESS,
-    },
-    initCodeHash: '0x96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f',
-    defaultSwapFee: constants_2._30,
-});
-UniswapV2RoutablePlatform.SUSHISWAP = new UniswapV2RoutablePlatform({
-    chainIds: [constants_2.ChainId.MAINNET, constants_2.ChainId.RINKEBY, constants_2.ChainId.ARBITRUM_ONE, constants_2.ChainId.POLYGON, constants_2.ChainId.BSC_MAINNET],
-    name: 'Sushiswap V2',
-    factoryAddress: SUSHISWAP_FACTORY_ADDRESS,
-    routerAddress: SUSHISWAP_ROUTER_ADDRESS,
-    initCodeHash: '0xe18a34eb0e04b04f7a0ac29a6e80748dca96319b42c54d679cb821dca90c6303',
-    defaultSwapFee: constants_2._30,
-    subgraphEndpoint: {},
-});
-UniswapV2RoutablePlatform.SWAPR = new UniswapV2RoutablePlatform({
-    chainIds: [
-        constants_2.ChainId.MAINNET,
-        constants_2.ChainId.RINKEBY,
-        constants_2.ChainId.ARBITRUM_ONE,
-        constants_2.ChainId.ARBITRUM_RINKEBY,
-        constants_2.ChainId.ARBITRUM_GOERLI,
-        constants_2.ChainId.XDAI,
-        constants_2.ChainId.GOERLI,
-    ],
-    name: 'Swapr',
-    factoryAddress: constants_2.FACTORY_ADDRESS,
-    routerAddress: constants_2.ROUTER_ADDRESS,
-    initCodeHash: constants_2.INIT_CODE_HASH,
-    defaultSwapFee: constants_2.defaultSwapFee,
-    subgraphEndpoint: {
-        [constants_2.ChainId.MAINNET]: 'https://api.thegraph.com/subgraphs/name/dxgraphs/swapr-mainnet-v2',
-        [constants_2.ChainId.ARBITRUM_ONE]: 'https://api.thegraph.com/subgraphs/name/dxgraphs/swapr-arbitrum-one-v3',
-        [constants_2.ChainId.XDAI]: 'https://api.thegraph.com/subgraphs/name/dxgraphs/swapr-xdai-v2',
-        [constants_2.ChainId.RINKEBY]: 'https://api.thegraph.com/subgraphs/name/dxgraphs/swapr-rinkeby',
-        [constants_2.ChainId.ARBITRUM_RINKEBY]: 'https://api.thegraph.com/subgraphs/name/dxgraphs/swapr-arbitrum-rinkeby-v2',
-    },
-});
-UniswapV2RoutablePlatform.UNISWAP = new UniswapV2RoutablePlatform({
-    chainIds: [constants_2.ChainId.MAINNET, constants_2.ChainId.RINKEBY],
-    name: 'Uniswap v2',
-    factoryAddress: {
-        [constants_2.ChainId.MAINNET]: UNISWAP_FACTORY_ADDRESS,
-        [constants_2.ChainId.RINKEBY]: UNISWAP_FACTORY_ADDRESS,
-    },
-    routerAddress: {
-        [constants_2.ChainId.MAINNET]: UNISWAP_ROUTER_ADDRESS,
-        [constants_2.ChainId.RINKEBY]: UNISWAP_ROUTER_ADDRESS,
-    },
-    initCodeHash: '0x96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f',
-    defaultSwapFee: constants_2._30,
-    subgraphEndpoint: {
-        [constants_2.ChainId.MAINNET]: 'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2',
-    },
-});
 //# sourceMappingURL=UniswapV2RoutablePlatform.js.map

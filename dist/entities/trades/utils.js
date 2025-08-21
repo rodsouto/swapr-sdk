@@ -82,7 +82,7 @@ let customRpcProviders = {};
  * @param providers Partial record of chain IDs to RPC URLs
  */
 function configureRpcProviders(providers) {
-    customRpcProviders = Object.assign(Object.assign({}, customRpcProviders), providers);
+    customRpcProviders = { ...customRpcProviders, ...providers };
 }
 exports.configureRpcProviders = configureRpcProviders;
 /**
@@ -96,7 +96,7 @@ exports.resetRpcProviders = resetRpcProviders;
  * Get the effective RPC provider list (custom + defaults)
  */
 function getRpcProviderList() {
-    return Object.assign(Object.assign({}, exports.DEFAULT_RPC_PROVIDER_LIST), customRpcProviders);
+    return { ...exports.DEFAULT_RPC_PROVIDER_LIST, ...customRpcProviders };
 }
 exports.getRpcProviderList = getRpcProviderList;
 /**

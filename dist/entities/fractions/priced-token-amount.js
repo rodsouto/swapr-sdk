@@ -5,6 +5,7 @@ const units_1 = require("@ethersproject/units");
 const currencyAmount_1 = require("./currencyAmount");
 const tokenAmount_1 = require("./tokenAmount");
 class PricedTokenAmount extends tokenAmount_1.TokenAmount {
+    token;
     // amount _must_ be raw, i.e. in the native representation
     constructor(token, amount) {
         super(token, amount);

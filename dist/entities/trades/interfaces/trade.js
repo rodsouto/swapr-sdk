@@ -7,6 +7,51 @@ const percent_1 = require("../../fractions/percent");
  * Extend this class to create more trades to the Eco Router
  */
 class Trade {
+    details;
+    /**
+     * The input amount of the trade.
+     */
+    tradeType;
+    /**
+     * The input amount of the trade.
+     */
+    inputAmount;
+    /**
+     * The output amount of the trade.
+     */
+    outputAmount;
+    /**
+     * The maximum slippage allowed in the trade.
+     */
+    maximumSlippage;
+    /**
+     * The execution price of the trade.
+     */
+    executionPrice;
+    /**
+     * The price impact of the trade, as a percentage.
+     */
+    priceImpact;
+    /**
+     * The chainId of the trade.
+     */
+    chainId;
+    /**
+     * A platform that this trade is executed on.
+     */
+    platform;
+    /**
+     * An address the EOA must approve to spend its tokenIn
+     */
+    approveAddress;
+    /**
+     * The trade fee
+     */
+    fee;
+    /**
+     * Estimated gas cost of the trade
+     */
+    estimatedGas;
     constructor({ details, type, inputAmount, outputAmount, executionPrice, maximumSlippage, priceImpact, chainId, platform, fee = new percent_1.Percent('0'), approveAddress, estimatedGas, }) {
         this.details = details;
         this.tradeType = type;
