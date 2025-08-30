@@ -66,6 +66,7 @@ exports.DEFAULT_RPC_PROVIDER_LIST = {
     [constants_1.ChainId.MAINNET]: 'https://eth.llamarpc.com',
     [constants_1.ChainId.OPTIMISM_GOERLI]: 'https://goerli.optimism.io',
     [constants_1.ChainId.OPTIMISM_MAINNET]: 'https://opt-mainnet.g.alchemy.com/v2/6cRVjVO2uOTC9gWFCsBnquUwOM9zuWQZ',
+    [constants_1.ChainId.BASE]: 'https://mainnet.base.org',
     [constants_1.ChainId.POLYGON]: 'https://polygon-rpc.com',
     [constants_1.ChainId.RINKEBY]: 'https://rinkeby.infura.io/v3/e1a3bfc40093494ca4f36b286ab36f2d',
     [constants_1.ChainId.SCROLL_MAINNET]: 'https://rpc.scroll.io/ ',

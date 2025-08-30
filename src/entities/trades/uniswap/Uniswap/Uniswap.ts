@@ -5,6 +5,7 @@ import { UnsignedTransaction } from '@ethersproject/transactions'
 import { parseUnits } from '@ethersproject/units'
 import { Protocol } from '@uniswap/router-sdk'
 import {
+  ChainId,
   CurrencyAmount as UniswapCurrencyAmount,
   Percent as UniswapPercent,
   Token as UniswapToken,
@@ -92,7 +93,7 @@ export class UniswapTrade extends TradeWithSwapTransaction {
       priceImpact,
       fee: new Percent(JSBI.BigInt(fee), '10000'),
       // Uniswap V3 Router v2 address
-      approveAddress: '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45',
+      approveAddress: chainId === ChainId.BASE ? '0x2626664c2603336E57B271c5C0b26F421741e481' : '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45',
       estimatedGas: swapRoute.estimatedGasUsed,
     })
     this.swapRoute = swapRoute

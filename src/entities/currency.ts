@@ -53,6 +53,7 @@ export class Currency {
     [ChainId.MAINNET]: Currency.ETHER,
     [ChainId.OPTIMISM_GOERLI]: Currency.OPTIMISM_ETHER,
     [ChainId.OPTIMISM_MAINNET]: Currency.OPTIMISM_ETHER,
+    [ChainId.BASE]: Currency.OPTIMISM_ETHER,
     [ChainId.POLYGON]: Currency.MATIC,
     [ChainId.RINKEBY]: Currency.ETHER,
     [ChainId.SCROLL_MAINNET]: Currency.ETHER,

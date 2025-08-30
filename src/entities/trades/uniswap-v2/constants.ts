@@ -260,6 +260,9 @@ export const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     WBTC[ChainId.OPTIMISM_MAINNET],
     DAI[ChainId.OPTIMISM_MAINNET],
   ],
+  [ChainId.BASE]: [
+    WETH[ChainId.BASE],
+  ],
   [ChainId.POLYGON]: [WMATIC[ChainId.POLYGON], WBTC[ChainId.POLYGON], USDC[ChainId.POLYGON], USDT[ChainId.POLYGON]],
   [ChainId.RINKEBY]: [WETH[ChainId.RINKEBY]],
   [ChainId.SCROLL_MAINNET]: [WETH[ChainId.SCROLL_MAINNET]],

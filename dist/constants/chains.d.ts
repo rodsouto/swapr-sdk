@@ -12,6 +12,7 @@ export declare enum ChainId {
     MAINNET = 1,
     OPTIMISM_GOERLI = 420,
     OPTIMISM_MAINNET = 10,
+    BASE = 8453,
     POLYGON = 137,
     /**
      * @deprecated Use GOERLI instead

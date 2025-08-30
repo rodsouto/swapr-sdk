@@ -82,6 +82,9 @@ exports.BASES_TO_CHECK_TRADES_AGAINST = {
         exports.WBTC[constants_1.ChainId.OPTIMISM_MAINNET],
         exports.DAI[constants_1.ChainId.OPTIMISM_MAINNET],
     ],
+    [constants_1.ChainId.BASE]: [
+        token_1.WETH[constants_1.ChainId.BASE],
+    ],
     [constants_1.ChainId.POLYGON]: [token_1.WMATIC[constants_1.ChainId.POLYGON], exports.WBTC[constants_1.ChainId.POLYGON], exports.USDC[constants_1.ChainId.POLYGON], exports.USDT[constants_1.ChainId.POLYGON]],
     [constants_1.ChainId.RINKEBY]: [token_1.WETH[constants_1.ChainId.RINKEBY]],
     [constants_1.ChainId.SCROLL_MAINNET]: [token_1.WETH[constants_1.ChainId.SCROLL_MAINNET]],

@@ -16,6 +16,7 @@ var ChainId;
     ChainId[ChainId["MAINNET"] = 1] = "MAINNET";
     ChainId[ChainId["OPTIMISM_GOERLI"] = 420] = "OPTIMISM_GOERLI";
     ChainId[ChainId["OPTIMISM_MAINNET"] = 10] = "OPTIMISM_MAINNET";
+    ChainId[ChainId["BASE"] = 8453] = "BASE";
     ChainId[ChainId["POLYGON"] = 137] = "POLYGON";
     /**
      * @deprecated Use GOERLI instead

@@ -45,6 +45,10 @@ const MINIMUM_STAKED_AMOUNT_NATIVE_CURRENCY: Record<ChainId, CurrencyAmount> = {
     parseUnits('0.05', Token.getNative(ChainId.OPTIMISM_MAINNET).decimals).toString(),
     ChainId.OPTIMISM_MAINNET,
   ),
+  [ChainId.BASE]: CurrencyAmount.nativeCurrency(
+    parseUnits('0.05', Token.getNative(ChainId.BASE).decimals).toString(),
+    ChainId.BASE,
+  ),
   [ChainId.POLYGON]: CurrencyAmount.nativeCurrency(
     parseUnits('0', Token.getNative(ChainId.POLYGON).decimals).toString(),
     ChainId.POLYGON,

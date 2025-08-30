@@ -31,6 +31,7 @@ const INITIAL_CACHE_STATE: Record<ChainId, any> = {
   [ChainId.MAINNET]: {},
   [ChainId.OPTIMISM_GOERLI]: {},
   [ChainId.OPTIMISM_MAINNET]: {},
+  [ChainId.BASE]: {},
   [ChainId.POLYGON]: {},
   [ChainId.RINKEBY]: {},
   [ChainId.SCROLL_MAINNET]: {},

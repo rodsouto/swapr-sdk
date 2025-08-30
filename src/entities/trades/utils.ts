@@ -62,6 +62,7 @@ export const DEFAULT_RPC_PROVIDER_LIST: Record<ChainId, string> = {
   [ChainId.MAINNET]: 'https://eth.llamarpc.com',
   [ChainId.OPTIMISM_GOERLI]: 'https://goerli.optimism.io',
   [ChainId.OPTIMISM_MAINNET]: 'https://opt-mainnet.g.alchemy.com/v2/6cRVjVO2uOTC9gWFCsBnquUwOM9zuWQZ',
+  [ChainId.BASE]: 'https://mainnet.base.org',
   [ChainId.POLYGON]: 'https://polygon-rpc.com',
   [ChainId.RINKEBY]: 'https://rinkeby.infura.io/v3/e1a3bfc40093494ca4f36b286ab36f2d',
   [ChainId.SCROLL_MAINNET]: 'https://rpc.scroll.io/ ',

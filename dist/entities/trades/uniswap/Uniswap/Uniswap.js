@@ -74,7 +74,7 @@ class UniswapTrade extends trade_1.TradeWithSwapTransaction {
             priceImpact,
             fee: new fractions_1.Percent(jsbi_1.default.BigInt(fee), '10000'),
             // Uniswap V3 Router v2 address
-            approveAddress: '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45',
+            approveAddress: chainId === sdk_core_1.ChainId.BASE ? '0x2626664c2603336E57B271c5C0b26F421741e481' : '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45',
             estimatedGas: swapRoute.estimatedGasUsed,
         });
         this.swapRoute = swapRoute;

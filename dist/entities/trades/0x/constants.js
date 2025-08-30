@@ -16,6 +16,7 @@ exports.ZEROX_API_URL = {
     [chains_1.ChainId.MAINNET]: 'https://api.0x.org/',
     [chains_1.ChainId.OPTIMISM_GOERLI]: '',
     [chains_1.ChainId.OPTIMISM_MAINNET]: 'https://optimism.api.0x.org/',
+    [chains_1.ChainId.BASE]: '',
     [chains_1.ChainId.POLYGON]: 'https://polygon.api.0x.org/',
     [chains_1.ChainId.RINKEBY]: '',
     [chains_1.ChainId.SCROLL_MAINNET]: '',

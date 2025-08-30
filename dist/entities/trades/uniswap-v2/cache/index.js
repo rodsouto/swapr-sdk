@@ -16,6 +16,7 @@ function createCacheList() {
         [constants_1.ChainId.MAINNET]: new Map(),
         [constants_1.ChainId.OPTIMISM_GOERLI]: new Map(),
         [constants_1.ChainId.OPTIMISM_MAINNET]: new Map(),
+        [constants_1.ChainId.BASE]: new Map(),
         [constants_1.ChainId.POLYGON]: new Map(),
         [constants_1.ChainId.RINKEBY]: new Map(),
         [constants_1.ChainId.SCROLL_MAINNET]: new Map(),

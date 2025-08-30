@@ -633,6 +633,7 @@ exports.CURVE_TOKENS = {
     [constants_1.ChainId.GOERLI]: {},
     [constants_1.ChainId.OPTIMISM_GOERLI]: {},
     [constants_1.ChainId.OPTIMISM_MAINNET]: {},
+    [constants_1.ChainId.BASE]: {},
     [constants_1.ChainId.RINKEBY]: {},
     [constants_1.ChainId.SCROLL_MAINNET]: {},
     [constants_1.ChainId.XDAI]: exports.TOKENS_XDAI,

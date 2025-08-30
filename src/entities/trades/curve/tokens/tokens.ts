@@ -639,6 +639,7 @@ export const CURVE_TOKENS: CurveTokenList = {
   [ChainId.GOERLI]: {},
   [ChainId.OPTIMISM_GOERLI]: {},
   [ChainId.OPTIMISM_MAINNET]: {},
+  [ChainId.BASE]: {},
   [ChainId.RINKEBY]: {},
   [ChainId.SCROLL_MAINNET]: {},
   [ChainId.XDAI]: TOKENS_XDAI,

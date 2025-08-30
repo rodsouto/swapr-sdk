@@ -14,6 +14,7 @@ export const ZEROX_API_URL: Record<ChainId, string> = {
   [ChainId.MAINNET]: 'https://api.0x.org/',
   [ChainId.OPTIMISM_GOERLI]: '',
   [ChainId.OPTIMISM_MAINNET]: 'https://optimism.api.0x.org/',
+  [ChainId.BASE]: '',
   [ChainId.POLYGON]: 'https://polygon.api.0x.org/',
   [ChainId.RINKEBY]: '',
   [ChainId.SCROLL_MAINNET]: '',

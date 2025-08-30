@@ -24,6 +24,7 @@ const INITIAL_CACHE_STATE = {
     [constants_2.ChainId.MAINNET]: {},
     [constants_2.ChainId.OPTIMISM_GOERLI]: {},
     [constants_2.ChainId.OPTIMISM_MAINNET]: {},
+    [constants_2.ChainId.BASE]: {},
     [constants_2.ChainId.POLYGON]: {},
     [constants_2.ChainId.RINKEBY]: {},
     [constants_2.ChainId.SCROLL_MAINNET]: {},

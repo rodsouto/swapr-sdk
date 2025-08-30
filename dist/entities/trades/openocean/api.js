@@ -19,6 +19,7 @@ const OO_API_CHAIN_CODE = {
     [constants_1.ChainId.GNOSIS]: 'xdai',
     [constants_1.ChainId.MAINNET]: 'eth',
     [constants_1.ChainId.OPTIMISM_MAINNET]: 'optimism',
+    [constants_1.ChainId.BASE]: 'base',
     [constants_1.ChainId.POLYGON]: 'polygon',
     [constants_1.ChainId.SCROLL_MAINNET]: 'scroll',
     [constants_1.ChainId.ZK_SYNC_ERA_MAINNET]: 'zksync',

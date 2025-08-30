@@ -45,6 +45,7 @@ class Currency {
         [constants_1.ChainId.MAINNET]: Currency.ETHER,
         [constants_1.ChainId.OPTIMISM_GOERLI]: Currency.OPTIMISM_ETHER,
         [constants_1.ChainId.OPTIMISM_MAINNET]: Currency.OPTIMISM_ETHER,
+        [constants_1.ChainId.BASE]: Currency.OPTIMISM_ETHER,
         [constants_1.ChainId.POLYGON]: Currency.MATIC,
         [constants_1.ChainId.RINKEBY]: Currency.ETHER,
         [constants_1.ChainId.SCROLL_MAINNET]: Currency.ETHER,
